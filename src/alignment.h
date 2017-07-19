@@ -2,9 +2,14 @@
 #ifndef ALIGNMENT_H
 #define ALIGNMENT_H
 
+#include <opencv2/opencv.hpp>
+
+/*
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
+*/
+
 #include <string>
 #include "align_data.h"
 
@@ -37,9 +42,11 @@ struct Model{
 };
 
 class Alignment{
-public: 
+public:
+	//	這個沒用
 	Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::string feat_file,
 			  std::string cam_file);
+	
 	Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::vector<std::string>& feat_names,
 			  std::string cam_file);
 	void aggregation();

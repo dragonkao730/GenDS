@@ -15,7 +15,6 @@ vector<string> img_names;
 vector<string> mask_names;
 vector<string> feat_names;
 
-
 void getInputFiles(const char* imgdir){
 	DIR* dir;
 	dirent* ent;
@@ -71,9 +70,9 @@ int main(int argc, char** argv){
 	
 	string feat_file = "feature/equi-feats.txt";
 	string cam_file = "auxiliary/polycam.cam";
-	/*
+	
 	Alignment  aligner(img_names, mask_names, feat_names, cam_file);
 	aligner.aggregation();
-	*/
+	
 	return 0;
 }

@@ -1,8 +1,13 @@
 #include "alignment.h"
 #include "optimisor.h"
+
+/*
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
+*/
+#include <opencv2/opencv.hpp>
+
 //#include <opencv2\contrib\contrib.hpp>
 #include <iostream>
 #include <fstream>
@@ -12,7 +17,7 @@ using namespace std;
 using namespace cv;
 
 
-
+/*
 Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names, 
 					 string feat_file, string cam_file){
 	align_data.scale = 1.0;
@@ -20,6 +25,8 @@ Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names,
 	readImages(img_names, mask_names);
 	readFeature(feat_file);
 }
+*/
+
 Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names, 
 					 std::vector<std::string>& feat_names, string cam_file){
 	align_data.scale = 1.0;

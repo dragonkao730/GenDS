@@ -1,13 +1,16 @@
 //#include "taucs_interface.h"
 #include "optimisor.h"
-#include <opencv2\calib3d\calib3d.hpp>
+#include <opencv2/opencv.hpp>
+/*
+#include <opencv2/calib3d/calib3d.hpp>
+*/
 //#include <opencv2\contrib\contrib.hpp>
 #include <iostream>
 #include <fstream>
 #include <time.h>
-#include <Eigen\sparse>
-#include <Eigen\SparseLU>
-#include <Eigen\IterativeLinearSolvers>
+#include <Eigen/sparse>
+#include <Eigen/SparseLU>
+#include <Eigen/IterativeLinearSolvers>
 
 using namespace std;
 using namespace cv;
@@ -2651,7 +2654,7 @@ void Optimisor::depthConstraint3(vector< vector<double> >& matrix_val, vector<do
 }
 void Optimisor::distConstraint(vector< vector<double> >& matrix_val, vector<double>& b, int img, int& row_count){
 	// This implementation is based on the following paper: 
-	// ¡§A shape preserving approach to image resizing¡¨
+	// ï¿½ï¿½A shape preserving approach to image resizingï¿½ï¿½
 	vector<DistortionData> distort_data;
 	int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
 #if NON_LOOP_GRID
@@ -2667,9 +2670,9 @@ void Optimisor::distConstraint(vector< vector<double> >& matrix_val, vector<doub
 	distort_data.resize(num_quad);
 	int idx = 0;
 	// ---- get idx_vertex
-	// 0 ¢w 1
+	// 0 ï¿½w 1
 	// |   |
-	// 2 ¢w 3
+	// 2 ï¿½w 3
 	for(int r = 0; r < num_row; ++r) {
 		for(int c = 0; c < num_col; ++c) {
 			DistortionData &distort = distort_data[idx];
