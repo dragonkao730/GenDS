@@ -1,0 +1,3 @@
+PROJECT(GenDS)
+SET(SRC_LIST align_parallax.cpp)
+ADD_EXECUTABLE(GenDS SRC_LIST)
