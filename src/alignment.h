@@ -1,6 +1,7 @@
 //This class implement the two-stage alignment: pairwise match and overall aggregation
 #ifndef ALIGNMENT_H
 #define ALIGNMENT_H
+
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
