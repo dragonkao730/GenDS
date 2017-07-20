@@ -15,64 +15,54 @@ vector<string> img_names;
 vector<string> mask_names;
 vector<string> feat_names;
 
-void getInputFiles(const char* imgdir){
-	DIR* dir;
-	dirent* ent;
+vector<string> getFilePathsInDir(const char *dir_path)
+{
+	DIR *dir;
+	dirent *ent;
 	char filename[256];
-	if((dir=opendir(imgdir)) != NULL ){
-		while( (ent=readdir(dir))!= NULL){
-			if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
+	vector<string> file_paths;
+	if ((dir = opendir(dir_path)) != NULL)
+	{
+		while ((ent = readdir(dir)) != NULL)
+		{
+			if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..") || !strcmp(ent->d_name, ".DS_Store"))
 				continue;
-			sprintf(filename, "%s/%s", imgdir, ent->d_name);
-			cout << filename<<endl;
-			img_names.push_back(string(filename));
+			sprintf(filename, "%s/%s", dir_path, ent->d_name);
+			cout << filename << endl;
+			file_paths.push_back(string(filename));
 		}
 	}
+	return file_paths;
 }
 
-void getMaskFiles(const char* maskdir){
-	DIR* dir;
-	dirent* ent;
-	char filename[256];
-	if((dir=opendir(maskdir)) != NULL ){
-		while( (ent=readdir(dir))!= NULL){
-			if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
-				continue;
-			sprintf(filename, "%s/%s", maskdir, ent->d_name);
-			cout << filename<<endl;
-			mask_names.push_back(string(filename));
-		}
+int main(int argc, char **argv)
+{
+	const string usage = "Example usage:\ngends corrs_dir_path polycam_config_path imgs_dir_path masks_dir_path\n ";
+	if (argc != 5)
+	{
+		cout << usage << endl;
+		return 0;
 	}
-}
 
-void getFeatFiles(const char* maskdir){
-	DIR* dir;
-	dirent* ent;
-	char filename[256];
-	if((dir=opendir(maskdir)) != NULL ){
-		while( (ent=readdir(dir))!= NULL){
-			if(!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
-				continue;
-			sprintf(filename, "%s/%s", maskdir, ent->d_name);
-			cout << filename<<endl;
-			feat_names.push_back(string(filename));
-		}
-	}
-}
+	const string corrs_dir_path = argv[1];
+	const string polycam_config_path = argv[2];
+	const string imgs_dir_path = argv[3];
+	const string masks_dir_path = argv[4];
 
+	cout << "corrs_dir_path = " << corrs_dir_path << endl;
+	cout << "polycam_config_path = " << polycam_config_path << endl;
+	cout << "imgs_dir_path = " << imgs_dir_path << endl;
+	cout << "masks_dir_path = " << masks_dir_path << endl;
 
-
-int main(int argc, char** argv){
+	vector<string> corrs_file_paths = getFilePathsInDir(corrs_dir_path.c_str());
+	vector<string> imgs_file_paths = getFilePathsInDir(imgs_dir_path.c_str());
+	vector<string> masks_file_paths = getFilePathsInDir(masks_dir_path.c_str());
 	
-	getInputFiles(img_dir.c_str());
-	getMaskFiles(mask_dir.c_str());
-	getFeatFiles(feat_dir.c_str());
-	
-	string feat_file = "feature/equi-feats.txt";
-	string cam_file = "auxiliary/polycam.cam";
-	
-	Alignment  aligner(img_names, mask_names, feat_names, cam_file);
+	Alignment aligner(	imgs_file_paths,
+						masks_file_paths,
+						corrs_file_paths,
+						polycam_config_path);
 	aligner.aggregation();
-	
+
 	return 0;
 }

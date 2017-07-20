@@ -41,14 +41,18 @@ struct Model{
 	std::vector<Triangle> triangles;
 };
 
+using namespace std;
+
 class Alignment{
 public:
 	//	這個沒用
-	Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::string feat_file,
-			  std::string cam_file);
+	//Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::string feat_file,
+	//		  std::string cam_file);
 	
-	Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::vector<std::string>& feat_names,
-			  std::string cam_file);
+	Alignment(	vector<string>& img_names,
+				vector<string>& mask_names,
+				vector<string>& feat_names,
+				string cam_file);
 	void aggregation();
 private:
 	void readImages(std::vector<std::string>& img_names, std::vector<std::string>& mask_names);

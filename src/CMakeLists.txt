@@ -1,23 +1,28 @@
 
-
-
-ADD_EXECUTABLE(GenDS
+# exe
+ADD_EXECUTABLE(gends
     align_parallax.cpp
     alignment.cpp
     mesh.cpp
     optimisor_o.cpp)
 
-# for opencv
+# bind opencv
 FIND_PACKAGE(OpenCV REQUIRED)
 MESSAGE(STATUS "OpenCV_INCLUDE_DIRS = " ${OpenCV_INCLUDE_DIRS})
 MESSAGE(STATUS "OpenCV_LIBS = " ${OpenCV_LIBS})
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(GenDS ${OpenCV_LIBS})
+TARGET_LINK_LIBRARIES(gends ${OpenCV_LIBS})
 
-# for eigen
+# bind eigen
 FIND_PACKAGE(Eigen3 REQUIRED)
 MESSAGE(STATUS "EIGEN3_INCLUDE_DIRS = " ${EIGEN3_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIRS})
+
+# install
+INSTALL(TARGETS gends
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib)
+
 
 
 

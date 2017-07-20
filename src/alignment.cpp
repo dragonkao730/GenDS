@@ -27,6 +27,7 @@ Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names,
 }
 */
 
+
 Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names, 
 					 std::vector<std::string>& feat_names, string cam_file){
 	align_data.scale = 1.0;

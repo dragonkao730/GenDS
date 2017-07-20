@@ -1215,7 +1215,7 @@ double Optimisor::linearSolve2(){
    
 	for(int k=0;k<left_frame;k++)
 	{
-		sprintf(output, "deform/deform_%d.txt", over_frame+k);
+		sprintf(output, "/Users/dragonkao730/tmp1/GenDS/deform/deform_%d.txt", over_frame+k);
 		ofstream fs(output);
 		for(int i=0;i<num_row;i++)
 		{
@@ -1240,6 +1240,7 @@ double Optimisor::linearSolve2(){
 
 	cout<<"construct time: "<< (constructMatrixTime-startTime)/1000.0 <<endl;
 	cout<<"solve time: "<< (solveTime-constructMatrixTime)/(1000.0*frame_limit )<<endl;
+	cout<<"yoyo"<<endl;
 	}
 
 
@@ -2239,7 +2240,7 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 	}
 }
 void Optimisor::depthConstraint2(vector< vector<double> >& matrix_val, vector<double>& b, int& row_count, vector<Vec3d>& depth_points){
-	cout << "	depth point constraint"<<endl;
+	cout << "	depth point constraint2"<<endl;
 	// Compute alpha values and fill them to matrix
 	int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
 #if NON_LOOP_GRID
@@ -2435,7 +2436,7 @@ void Optimisor::depthConstraint2(vector< vector<double> >& matrix_val, vector<do
 	}
 }
 void Optimisor::depthConstraint3(vector< vector<double> >& matrix_val, vector<double>& b, int& row_count, vector<Vec3d>& depth_points){
-	cout << "	depth point constraint"<<endl;
+	cout << "	depth point constraint3"<<endl;
 	// Compute alpha values and fill them to matrix
 	int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
 #if NON_LOOP_GRID

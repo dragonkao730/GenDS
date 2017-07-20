@@ -7,5 +7,6 @@
 
 ## 目標
 
+1. make install 可以安裝一個 lib 跟一個 bin。
 1. 嘗試寫 cmake 讓原本可以在 windows 上跑的程式可以在 linux 或 osx 上跑。
 2. 稍微整理 code。
