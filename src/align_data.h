@@ -10,8 +10,11 @@
 */
 #include <utility>
 
+using namespace std;
+using namespace cv;
+
 // store vertices in 2D array
-typedef std::vector< std::vector<cv::Point2f> > ImageMesh;
+typedef vector<vector<Point2f>> ImageMesh;
 
 struct Correspondence{
 	cv::Point2f fm; // point in image m

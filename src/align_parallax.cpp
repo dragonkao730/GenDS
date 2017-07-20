@@ -7,14 +7,6 @@
 
 using namespace std;
 
-string img_dir = "aquila/0421";
-string mask_dir = "mask/aquila";
-string feat_dir = "feature_all";
-
-vector<string> img_names;
-vector<string> mask_names;
-vector<string> feat_names;
-
 vector<string> getFilePathsInDir(const char *dir_path)
 {
 	DIR *dir;
@@ -37,10 +29,10 @@ vector<string> getFilePathsInDir(const char *dir_path)
 
 int main(int argc, char **argv)
 {
-	const string usage = "Example usage:\ngends corrs_dir_path polycam_config_path imgs_dir_path masks_dir_path\n ";
 	if (argc != 5)
 	{
-		cout << usage << endl;
+		cout << "Example usage:" << endl;
+		cout << "gends corrs_dir_path polycam_config_path imgs_dir_path masks_dir_path" << endl;
 		return 0;
 	}
 

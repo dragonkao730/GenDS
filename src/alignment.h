@@ -3,13 +3,6 @@
 #define ALIGNMENT_H
 
 #include <opencv2/opencv.hpp>
-
-/*
-#include <opencv2\core\core.hpp>
-#include <opencv2\highgui\highgui.hpp>
-#include <opencv2\imgproc\imgproc.hpp>
-*/
-
 #include <string>
 #include "align_data.h"
 
@@ -17,14 +10,41 @@
 #define NON_LOOP_GRID 0
 #define LOOP_GRID 1
 
+using namespace std;
+using namespace cv;
+
 struct Camera
 {
-	cv::Vec3d pos;
-	cv::Vec3d ori;
-	cv::Vec3d up;
+	Vec3d pos;
+	Vec3d ori;
+	Vec3d up;
 	double fovy;
 	double ratio;
 };
+
+/*
+struct PolyCamera
+{
+	vector<Camera> cameras;
+
+	PolyCamera(const string& config_path)
+   	{
+		ifstream fs(config_path);
+		assert(fs.good());
+		int num_cam;
+		fs >> num_cam;
+		cameras.resize(num_cam);
+		for(int c = 0; c < num_cam; ++c)
+		{
+			fs >> cameras[c].pos[0] >> cameras[c].pos[1] >> cameras[c].pos[2];
+			fs >> cameras[c].ori[0] >> cameras[c].ori[1] >> cameras[c].ori[2];
+			fs >> cameras[c].up[0] >> cameras[c].up[1] >> cameras[c].up[2];
+			fs >> cameras[c].fovy >> cameras[c].ratio;
+		}
+		fs.close();
+   	}
+};
+*/
 
 struct Triangle{
 	std::vector<cv::Vec3d> vertpos;
@@ -45,14 +65,17 @@ using namespace std;
 
 class Alignment{
 public:
-	//	這個沒用
-	//Alignment(std::vector<std::string>& img_names, std::vector<std::string>& mask_names, std::string feat_file,
-	//		  std::string cam_file);
 	
 	Alignment(	vector<string>& img_names,
 				vector<string>& mask_names,
 				vector<string>& feat_names,
 				string cam_file);
+	/*
+	Alignment(	const vector<Camera>& input_cameras,
+				const vector<Mat>& input_masks,
+				const vector<Mat>& input_images);
+	*/
+	
 	void aggregation();
 private:
 	void readImages(std::vector<std::string>& img_names, std::vector<std::string>& mask_names);

@@ -16,17 +16,16 @@
 using namespace std;
 using namespace cv;
 
-
 /*
-Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names, 
-					 string feat_file, string cam_file){
+Alignment::Alignment(	const vector<Camera>& input_cameras,
+						const vector<Mat>& input_masks,
+						const vector<Mat>& input_images)
+{
 	align_data.scale = 1.0;
-	loadCameras(cam_file);
-	readImages(img_names, mask_names);
-	readFeature(feat_file);
+	align_data.frame_size = feat_names.size();
+	cameras = input_cameras;
 }
 */
-
 
 Alignment::Alignment(vector<string>& img_names, vector<string>& mask_names, 
 					 std::vector<std::string>& feat_names, string cam_file){
@@ -86,7 +85,7 @@ void Alignment::readImages(vector<string>& img_names, vector<string>& mask_names
 	// Initialize align_data according to #images
 	align_data.img_data.resize(img_names.size());
 	align_data.feature_graph.resize(img_names.size());
-	align_data.img_data.resize(img_names.size());
+	
 	align_data.mesh_data.resize(img_names.size());
 	for(size_t i = 0; i < img_names.size(); ++i){
 		align_data.mesh_data[i].deform_meshes.resize(img_names.size());
@@ -521,7 +520,7 @@ void Alignment::aggregation(){
 	double emp = 1e-5;
 	Optimisor aggrOpt(align_data, cameras);
 	//change here
-	prev_energy = aggrOpt.linearSolve3();
+	prev_energy = aggrOpt.linearSolve2();
 
 	//prev_energy = aggrOpt.linearSolve();
 	/*
