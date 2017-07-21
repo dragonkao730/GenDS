@@ -44,9 +44,9 @@ class Optimisor{
 public:
 	Optimisor(AlignData& align_data, std::vector<Camera>& cameras);
 	Optimisor(AlignData& align_data);
-	double linearSolve(); // used for aggregation
+	
 	double linearSolve2();// used for another method
-	double linearSolve3();// used for another method
+	
 private:
 	//----- Image warping utilities -----//
 	void getWarpImage(cv::Mat& in_img, cv::Mat& out_img, cv::Mat& in_mask, cv::Mat& out_mask,  

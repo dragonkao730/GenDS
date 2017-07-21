@@ -573,7 +573,7 @@ void Optimisor::getDepthPoints(vector<Correspondence>& corres, vector<Vec3d>& de
 		for(int j = 0; j < cameras.size(); ++j)
 			baseline[i][j] = (i == j) ? Vec3d(0.0, 0.0, 0.0) : cameras[j].pos - cameras[i].pos;
 	}
-	int count=0,count14=0,count16=0,count18=0;
+	
 	for(int i = 0; i < corres.size(); ++i)
 	{
 		Correspondence corr = corres[i];
@@ -647,19 +647,10 @@ void Optimisor::getDepthPoints(vector<Correspondence>& corres, vector<Vec3d>& de
 			ps[2] = pe.y;	//theata
 
 			depth_points.push_back(ps);
-			if(depth>1e8)
-				count18++;
-			else if(depth>1e6)
-				count16++;
-			else if(depth>1e4)
-				count14++;
-			count++;
 			/*if(depth<100)
 				cout<<i<<endl;*/
 		}
 	}
-	//cout<<equi_size.width<<"\t"<<equi_size.height<<endl;
-	//cout<<"ALL:"<<count<<",14:"<<count14<<",16:"<<count16<<",18:"<<count18<<endl;
 }
 
 void Optimisor::drawComposition()
@@ -731,182 +722,11 @@ void Optimisor::drawComposition()
 #endif
 }
 
-double Optimisor::linearSolve(){
-	cout << "Aggregation..."<<endl;
-	double e = 0.0;
-	vector<Correspondence> corr;
-	vector<Point2f> anchor_points;
-	getPairCorrespondence(corr);
-	getAnchorPoints(corr, anchor_points);
-	cout << "#corr:"<<corr.size()<<", #anchor:"<<anchor_points.size()<<endl;
-	
-	// set linear system
-	int row_count = 0;
-	vector< vector<double> > matrix_val;
-	vector<double> b;
-	// === add constraint of correspondence term ===== //
-	//corrConstraint(matrix_val, b, row_count, corr);
-	// === add anchor points ============//
-	anchorConstraint(matrix_val, b, row_count, corr, anchor_points);
-	// === add constraint of distortion term ===== //
-	
-	cout << "	distortion constraint"<<endl;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i)
-		distConstraint(matrix_val, b, i, row_count);
-		
-	
-	
-	cout << "	length constraint"<<endl;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i)
-		lengthConstraint(matrix_val, b, i, row_count);
-		
-		
-	
-	// === add constraint of smoothness term ===== //
-	
-	cout << "	smooth constraint"<<endl;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i)
-		smoothConstraint(matrix_val, b, i, row_count);
-		
-		
-		
-	// === add constraint of origin term (boundary condition) =====//
-	
-	cout << "	origin constraint"<<endl;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i)
-		originConstraint(matrix_val, b, i, row_count);
-
-	// Transfer the linear system into Eigen interface		
-	unsigned long startTime = clock();
-	int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
-	int num_img = align_data.img_data.size();
-	Eigen::SparseMatrix<double> A(row_count, 2 * num_vert * num_img);
-	A.reserve(matrix_val.size());
-	for(size_t i = 0; i < matrix_val.size(); ++i){
-		A.insert((int)matrix_val[i][0], (int)matrix_val[i][1]) = matrix_val[i][2];
-	}
-	
-	Eigen::SparseMatrix<double> AT= A.transpose();
-
-	Eigen::VectorXd B(row_count);
-	for(size_t i = 0; i < b.size(); ++i)
-		B[i] = b[i];
-
-	B = AT * B;//b = A'*b
-	B = (-1) * B;
-
-	A = AT * A;//A = A'*A
-	A = (-1) * A;
-	A.makeCompressed();
-
-	Eigen::ConjugateGradient <Eigen::SparseMatrix<double>> linearSolver;
-	linearSolver.compute(A);
-
-	/*int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
-	int num_col = align_data.mesh_data[0].ori_mesh[0].size();
-	vector<Size> grid_size(align_data.img_data.size());
-	for(size_t i = 0; i < grid_size.size(); ++i){
-		grid_size[i].width = (float)(align_data.img_data[i].scale_img.cols-1)/(float)num_col;
-		grid_size[i].height = (float)(align_data.img_data[i].scale_img.rows-1)/(float)num_row;
-	}
-
-
-	Eigen::VectorXd X0(2*num_vert*num_img) ;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i){
-		int index = 0;
-		for(size_t r = 0; r < num_row+1; ++r){
-			for(size_t c = 0; c < num_col; ++c){
-				X0[2*num_vert*i+index] = c*grid_size[i].width;
-				X0[2*num_vert*i+index+num_vert] = r*grid_size[i].height;
-				index++;
-			}
-		}
-	}*/
-	//const Eigen::VectorXd x0=X0 ;
-	unsigned long constructMatrixTime = clock(); //construct matrix time
-
-	/*for(int i=0;i<2*num_vert*num_img;i++)
-	{
-		cout <<int(X0[i])<<" ";
-		if((i+1)%(align_data.mesh_data[0].ori_mesh[0].size())==0)
-			cout<<endl;
-		//X3[i]=10000.0f;
-	}*/
-
-	Eigen::VectorXd X = linearSolver.solve(B);
-	//Eigen::VectorXd X = linearSolver.solveWithGuess(B,X0);
-	//X = A * X -B;
-	//cout<<A;
-	unsigned long solveTime = clock(); 
-	for(int i=0;i<2*num_vert*num_img;i++)
-	{
-		cout <<B[i]<<" ";
-		if((i+1)%(align_data.mesh_data[0].ori_mesh[0].size())==0)
-			cout<<endl;
-		//X3[i]=10000.0f;
-	}
-
-	//Taucs solver
-	// Transfer the linear system into Taucs interface
-	/*unsigned long startTime = clock();
-
-	int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
-	int num_img = align_data.img_data.size();
-	InitTaucsInterface();
-	int A_ID = CreateMatrix(row_count, 2 * num_vert * num_img);
-	for(size_t i = 0; i < matrix_val.size(); ++i){
-		SetMatrixEntry(A_ID, (int)matrix_val[i][0], (int)matrix_val[i][1], matrix_val[i][2]);
-	}
-	taucsType* B = new taucsType[row_count];
-	for(size_t i = 0; i < b.size(); ++i)
-		B[i] = b[i];
-	taucsType* X = new taucsType[2 * num_vert * num_img];
-	
-	unsigned long constructMatrixTime = clock(); //construct matrix time
-
-	bool solve = SolveATA(A_ID, B, X, 1);
-
-	unsigned long solveTime = clock(); //construct matrix time*/
-
-	cout<<"construct time: "<< (constructMatrixTime-startTime)/1000.0 <<endl;
-	cout<<"solve time: "<< (solveTime-constructMatrixTime)/1000.0 <<endl;
-	// update mesh of each image (store the deform mesh at same id)
-	vector<Mat> disp_maps(align_data.img_data.size());
-	for(size_t i = 0; i < align_data.img_data.size(); ++i){
-		disp_maps[i] = Mat::zeros(align_data.img_data[i].scale_img.size(), CV_32FC1);
-		ImageMesh& in_mesh = align_data.mesh_data[i].ori_mesh;
-		ImageMesh& deform_mesh = align_data.mesh_data[i].deform_meshes[i];
-		deform_mesh.resize(in_mesh.size());
-		int idx = 0;
-		for(size_t r = 0; r < deform_mesh.size(); ++r){
-			deform_mesh[r].resize(in_mesh[r].size());
-			for(size_t c = 0; c < deform_mesh[r].size(); ++c){
-				deform_mesh[r][c].x = X[2*num_vert*i+idx];
-				deform_mesh[r][c].y = X[2*num_vert*i+idx+num_vert];
-				cout << deform_mesh[r][c].x<<","<<deform_mesh[r][c].y<<endl;
-				idx++;
-			}
-		}
-		Mat& in_mask = align_data.img_data[i].scale_mask;
-		Mat& out_mask = align_data.img_data[i].warp_masks[i];
-		Mat& in_img = align_data.img_data[i].scale_img;
-		Mat& out_img = align_data.img_data[i].warp_imgs[i];
-		getWarpImage(in_img, out_img, in_mask, out_mask, in_mesh, deform_mesh);
-	}
-	// leave taucs interface
-	//ReleaseMatrix(A_ID);
-	//DeinitTaucsInterface();
-	//
-	drawComposition();
-
-	return e;
-}
-
 double Optimisor::linearSolve2(){
 	cout << "Aggregation..."<<endl;
 	double e = 0.0;
 	vector<Correspondence> corr;
-	vector<vector<Vec3d>> depth_points;
+	vector<vector<Vec3d>> depth_points; // n_frames, n_vertices
 	depth_points.resize(align_data.frame_size);
 	//getPairCorrespondence(corr);
 	for(int i=0;i<align_data.frame_size;i++)
@@ -1003,20 +823,14 @@ double Optimisor::linearSolve2(){
 				else 
 					X3[i]=(X3[i+left]+X3[i+right]+X3[i-num_col]+X3[i+num_col])/4;
 
-
 				if(count>=1)
 				{
 					X3[i] = 1000;
 				}
 				count++;
 			}
-			/*cout <<int(X3[i])<<"\t";
-			if((i+1)%(align_data.mesh_data[0].ori_mesh[0].size())==0)
-				cout<<endl;
-			if((i+1)%(vert_num)==0)
-				cout<<endl<<endl;*/
 		}
-			//X3[i] = 10000;
+		
 		for(int i=0;i<num_vert*frame_limit;i++)
 		{
 			int left=-1,right=1;
@@ -1244,232 +1058,6 @@ double Optimisor::linearSolve2(){
 	}
 
 
-	//transform sphere into equi
-	/*Eigen::VectorXd X(2*num_vert*4);
-	transformSphere2equi( X, X3);
-	StichBySphere(X3);
-	// update mesh of each image (store the deform mesh at same id)
-	vector<Mat> disp_maps(align_data.img_data.size());
-	for(size_t i = 0; i < align_data.img_data.size(); ++i){
-		disp_maps[i] = Mat::zeros(align_data.img_data[i].scale_img.size(), CV_32FC1);
-		ImageMesh& in_mesh = align_data.mesh_data[i].ori_mesh;
-		ImageMesh& deform_mesh = align_data.mesh_data[i].deform_meshes[i];
-		deform_mesh.resize(in_mesh.size());
-		int idx = 0;
-		for(size_t r = 0; r < deform_mesh.size(); ++r){
-			deform_mesh[r].resize(in_mesh[r].size());
-			for(size_t c = 0; c < deform_mesh[r].size(); ++c){
-				deform_mesh[r][c].x = X[2*num_vert*i+idx];
-				deform_mesh[r][c].y = X[2*num_vert*i+idx+num_vert];
-				idx++;
-			}
-		}
-		Mat& in_mask = align_data.img_data[i].scale_mask;
-		Mat& out_mask = align_data.img_data[i].warp_masks[i];
-		Mat& in_img = align_data.img_data[i].scale_img;
-		Mat& out_img = align_data.img_data[i].warp_imgs[i];
-		getWarpImage(in_img, out_img, in_mask, out_mask, in_mesh, deform_mesh);
-	}
-	// leave taucs interface
-	//ReleaseMatrix(A_ID);
-	//DeinitTaucsInterface();
-	//
-	drawComposition();*/
-
-	return e;
-}
-
-double Optimisor::linearSolve3(){
-	cout << "Aggregation..."<<endl;
-	double e = 0.0;
-	vector<Correspondence> corr;
-	vector<vector<Vec3d>> depth_points;
-	depth_points.resize(align_data.frame_size);
-	//getPairCorrespondence(corr);
-	for(int i=0;i<align_data.frame_size;i++)
-	{
-		getDepthPoints(align_data.corr_data[i].correspon, depth_points[i]);
-		cout << "#corr:"<<corr.size()<<", #anchor:"<<depth_points[i].size()<<endl;
-	}
-	int frame_num = align_data.frame_size;
-	// set linear system
-	for(int f=0;f<frame_num;f++)
-	{
-	int row_count = 0;
-	vector< vector<double> > matrix_val;
-	vector<double> b;
-	// === add constraint of correspondence term ===== //
-	//corrConstraint(matrix_val, b, row_count, corr);
-	// === add anchor points ============//
-	//change here
-	depthConstraint(matrix_val, b, row_count, depth_points[f],0);
-	//anchorConstraint(matrix_val, b, row_count, corr, anchor_points);
-	
-	// === add constraint of smoothness term ===== //
-	cout << "smooth constraint"<<endl;
-	smoothConstraint2(matrix_val, b, row_count, 0);
-	
-	// === add constraint of origin term (boundary condition) =====//
-	/*cout << "	origin constraint"<<endl;
-	for(size_t i = 0; i < align_data.img_data.size(); ++i)
-		originConstraint(matrix_val, b, i, row_count);*/
-
-	// Transfer the linear system into Eigen interface	
-	
-	unsigned long startTime = clock();
-	int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
-	int num_img = align_data.img_data.size();
-	int num_col = align_data.mesh_data[0].ori_mesh[0].size();//10
-	int num_row = align_data.mesh_data[0].ori_mesh.size();//11
-	Eigen::SparseMatrix<double> A(row_count,  num_vert*frame_num);
-	A.reserve(matrix_val.size());
-	for(size_t i = 0; i < matrix_val.size(); ++i){
-		A.insert((int)matrix_val[i][0], (int)matrix_val[i][1]) = matrix_val[i][2];
-	}
-	cout<<"constrcut done"<<endl;
-	Eigen::SparseMatrix<double> AT= A.transpose();
-
-	Eigen::VectorXd B(row_count);
-	for(size_t i = 0; i < b.size(); ++i)
-		B[i] = b[i];
-
-	B = AT * B;//b = A'*b
-	B = (-1) * B;
-
-	A = AT * A;//A = A'*A
-	A = (-1) * A;
-
-	A.makeCompressed();
-
-	Eigen::ConjugateGradient <Eigen::SparseMatrix<double>> linearSolver;
-	linearSolver.compute(A);
-
-	unsigned long constructMatrixTime = clock(); //construct matrix time
-
-	Eigen::VectorXd X3 = linearSolver.solve(B);
-	cout<<"over "<<f<<"-th otimizes"<<endl;
-
-	//Taucs solver
-	// Transfer the linear system into Taucs interface
-/*	unsigned long startTime = clock();
-
-	int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
-	int num_img = align_data.img_data.size();
-	InitTaucsInterface();
-	int A_ID = CreateMatrix(row_count, num_vert * num_img);
-	for(size_t i = 0; i < matrix_val.size(); ++i){
-		SetMatrixEntry(A_ID, (int)matrix_val[i][0], (int)matrix_val[i][1], matrix_val[i][2]);
-	}
-	taucsType* B = new taucsType[row_count];
-	for(size_t i = 0; i < b.size(); ++i)
-		B[i] = b[i];
-	taucsType* X = new taucsType[num_vert * num_img];
-	
-	unsigned long constructMatrixTime = clock(); //construct matrix time
-
-	bool solve = SolveATA(A_ID, B, X, 1);
-	*/
-
-	for(int i=0;i<num_vert;i++)
-	{
-		int count=0;
-		while((X3[i]<1000))
-		{
-			//cout<<i<<" ";
-			int left=-1,right=1;
-			if(i%num_col==0)
-				left=num_col-1;
-			if(i%num_col==(num_col-1))
-				right=-num_col+1;
-			if((i%num_vert)<num_col)
-				X3[i] = (X3[i+left]+X3[i+right]+X3[i+num_col])/3;
-			else if((i%num_vert)>=(num_vert-num_col))
-				X3[i] = (X3[i+left]+X3[i+right]+X3[i-num_col])/3;
-			else 
-				X3[i]=(X3[i+left]+X3[i+right]+X3[i-num_col]+X3[i+num_col])/4;
-
-
-			if(count>=1)
-			{
-				X3[i] = 1000;
-			}
-			count++;
-		}
-	}
-		//X3[i] = 10000;
-	for(int i=0;i<num_vert;i++)
-	{
-		int left=-1,right=1;
-			if(i%num_col==0)
-				left=num_col-1;
-			if(i%num_col==(num_col-1))
-				right=-num_col+1;
-			if(i<num_col)
-				X3[i] = (X3[i]+X3[i+left]+X3[i+right]+X3[i+num_col])/4;
-			else if((i+num_col)>=num_vert)
-				X3[i] = (X3[i]+X3[i+left]+X3[i+right]+X3[i-num_col])/4;
-			else 
-				X3[i]=(X3[i]+X3[i+left]+X3[i+right]+X3[i-num_col]+X3[i+num_col])/5;
-		/*cout <<int(X3[i])<<"\t";
-		if((i+1)%(align_data.mesh_data[0].ori_mesh[0].size())==0)
-			cout<<endl;*/
-		//X3[i]=10000.0f;
-		
-	}
-	cout<<endl;
-	Size equi_size = align_data.img_data[0].warp_imgs[0].size();
-	float gw = equi_size.width/num_col;
-	float gh = equi_size.height/num_row;
-	char output[30];
-    
-	/*sprintf(output, "deform/deform_%d.txt", f);
-	ofstream fs(output);
-	for(int i=0;i<num_row;i++)
-	{
-		for(int j=0;j<=num_col;j++)
-		{
-			Point2f pe(j*gw,i*gh);
-			Vec3d ps;
-			equi2Sphere( pe, ps, equi_size);
-			if(j!=num_col)
-					ps *= X3[i*num_col+j];
-				else
-					ps *= X3[i*num_col];
-			//if(ps[1]>0)
-				//fs<<int(ps[0])<<"\t"<<int(ps[1])<<"\t"<<int(ps[2])<<endl;
-			fs<<i*(num_col+1)+j<<"\t"<<ps[0]<<"\t"<<ps[1]<<"\t"<<ps[2]<<endl;
-		}
-	}
-	fs.close();*/
-	sprintf(output, "point/point_%d.txt", f);
-	ofstream fs(output);
-	for(int i=0;i<num_row;i++)
-	{
-		for(int j=0;j<=num_col;j++)
-		{
-			Point2f pe(j*gw,i*gh);
-			float r;
-			
-			if(j!=num_col)
-					r= X3[i*num_col+j];
-				else
-					r= X3[i*num_col];
-			//if(ps[1]>0)
-				//fs<<int(ps[0])<<"\t"<<int(ps[1])<<"\t"<<int(ps[2])<<endl;
-			if((i==0)||((i+1)==num_row))
-				fs<<1<<endl;
-			else
-				fs<<int(r/1000)<<endl;
-		}
-	}
-	fs.close();
-
-
-	unsigned long solveTime = clock(); 
-
-	cout<<"construct time: "<< (constructMatrixTime-startTime)/1000.0 <<endl;
-	cout<<"solve time: "<< (solveTime-constructMatrixTime)/1000.0 <<endl;
-	}
 	//transform sphere into equi
 	/*Eigen::VectorXd X(2*num_vert*4);
 	transformSphere2equi( X, X3);
@@ -2027,11 +1615,7 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 	cout << "	depth point constraint"<<endl;
 	// Compute alpha values and fill them to matrix
 	int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
-#if NON_LOOP_GRID
-	int num_col = align_data.mesh_data[0].ori_mesh[0].size()-1;
-	int nv_col = num_col + 1;
-	int num_vert = (num_row + 1) * (num_col + 1);
-#endif
+
 #if LOOP_GRID
 	int num_col = align_data.mesh_data[0].ori_mesh[0].size();
 	int nv_col = num_col;
@@ -2132,21 +1716,11 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 			matrix_val.push_back(constraint);
 			verticecount[col_idx[c_c]] += 1;
 		}
-
 		row_count++;			
 
-#if NON_LOOP_GRID	
-		if(dval < dval2)
-			b.push_back(anchor_points[p].x * w);
-		else
-			b.push_back((anchor_points[p].x + width[i]) * w);
-#endif
-#if LOOP_GRID
-		//b.push_back(anchor_x[closest] * w - (val[1]+val[3]) * offset[i]);
-#endif
 		b.push_back(ps[0]);
-			//p+=100;
 	}
+
 	vector<double> col_idx_2(2), val_2(2);
 	w=1;
 	for(int i=0;i<num_vert;i++)
@@ -2157,7 +1731,7 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 		//	cout<<endl;
 		if(verticecount[i]==0){
 		//if(1){
-				bool isEdge, isVer, isHor;
+			bool isEdge, isVer, isHor;
 
 			if(i >= num_col * num_row)
 			{//----Down edge (Horizotal)----
@@ -2176,8 +1750,8 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 				val_2[1] = -w/2;
 				
 				//x
-				col_idx_2[0] =  i+1 ;
-				col_idx_2[1] =  i-1;
+				col_idx_2[0] = i+1;
+				col_idx_2[1] = i-1;
 				
 				if(i % num_col == 0)
 					col_idx_2[1] = i + num_col-1;
