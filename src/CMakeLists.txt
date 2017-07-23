@@ -4,7 +4,8 @@ ADD_EXECUTABLE(gends
     align_parallax.cpp
     alignment.cpp
     mesh.cpp
-    optimisor_o.cpp)
+    optimisor_o.cpp
+    object_function.cpp)
 
 # bind opencv
 FIND_PACKAGE(OpenCV REQUIRED)

@@ -12,6 +12,8 @@
 #include <Eigen/SparseLU>
 #include <Eigen/IterativeLinearSolvers>
 
+#include "object_function.h"
+
 using namespace std;
 using namespace cv;
 
@@ -722,6 +724,38 @@ void Optimisor::drawComposition()
 #endif
 }
 
+void TempTransform(const vector<Constrain>& constrain_list,
+				   vector<vector<double>>& matrix_val,
+				   vector<double>& b,
+				   int& row_count,
+				   double w)
+{
+	//cout << constrain_list.size() << endl;
+	
+	for(auto &constrain : constrain_list)
+    {
+		for(auto &coefficient : constrain.coefficients)
+		{
+			vector<double> val(3);
+			val[0] = row_count;
+			val[1] = int(coefficient.first);
+			val[2] = coefficient.second * w;
+			
+			// debug
+			/*
+			cout << "r=" << val[0] << endl;
+			cout << "c=" << val[1] << endl;
+			cout << "v=" << val[2] << endl;
+			*/
+
+			matrix_val.push_back(val);
+		}
+		//assert(0);
+		b.push_back(constrain.b * w);
+		row_count++;
+    }
+}
+
 double Optimisor::linearSolve2(){
 	cout << "Aggregation..."<<endl;
 	double e = 0.0;
@@ -745,7 +779,7 @@ double Optimisor::linearSolve2(){
 	for(int s=0;s<set_num;s++)
 	{
 		int row_count = 0;
-		vector< vector<double> > matrix_val;
+		vector<vector<double>> matrix_val;
 		vector<double> b;
 		// === add constraint of correspondence term ===== //
 		//corrConstraint(matrix_val, b, row_count, corr);
@@ -757,8 +791,25 @@ double Optimisor::linearSolve2(){
 	
 		// === add constraint of smoothness term ===== //
 		cout << "smooth constraint"<<endl;
+		
+		/*
 		for(int i=0;i<frame_limit;i++)
 			smoothConstraint2(matrix_val, b, row_count, i);
+		*/
+
+		// dragonkao test
+		
+		const GridInfo grid_info(20, 20, 20);
+		TempTransform(GetSpatialSmoothConstraint(grid_info),
+					  matrix_val,
+					  b,
+					  row_count,
+					  10);
+					  
+					  
+		
+					  
+		// dragonkao test
 	
 		/// === add constraint of time smoothness term ===== //
 		int max_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size()*frame_limit;
@@ -771,12 +822,24 @@ double Optimisor::linearSolve2(){
 			originConstraint(matrix_val, b, i, row_count);*/
 
 		// Transfer the linear system into Eigen interface	
-	
 		unsigned long startTime = clock();
 		int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
 		int num_img = align_data.img_data.size();
 		int num_col = align_data.mesh_data[0].ori_mesh[0].size();//10
 		int num_row = align_data.mesh_data[0].ori_mesh.size();//11
+
+		// dragonkao test
+		/*
+		LinearSystem test_linear(row_count);
+		for(size_t i = 0; i < matrix_val.size(); ++i){
+			test_linear[(int)matrix_val[i][0]].coefficients.push_back(pair<int, double>((int)matrix_val[i][1], matrix_val[i][2]));
+		}
+		for(int i=0; i<row_count; i++)
+			test_linear[i].b = b[i];
+		VectorXd tmp_result = linearSolve(test_linear, num_vert*frame_num);
+		*/
+		// dragonkao test
+		
 		Eigen::SparseMatrix<double> A(row_count,  num_vert*frame_num);
 		A.reserve(matrix_val.size());
 		for(size_t i = 0; i < matrix_val.size(); ++i){
@@ -804,6 +867,11 @@ double Optimisor::linearSolve2(){
 
 		Eigen::VectorXd X3 = linearSolver.solve(B);
 		cout<<"over otimizes"<<endl;
+
+		// dragonkao test
+		/*
+		X3 = tmp_result;
+		*/
 
 		for(int i=0;i<num_vert*frame_limit;i++)
 		{
@@ -1652,7 +1720,7 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 		pos.x = ps[1] ;pos.y = ps[2];
 		/*  alpha1-- left, alpha2--right
 		*  alpha3-- up  , alpha4--down	 */
-		double alpha1, alpha2, alpha3, alpha4;
+		double alpha2, alpha4;
 		int c, r;
 		c = (int)(phi/gw);
 		if(c == num_col) {
@@ -1665,7 +1733,7 @@ void Optimisor::depthConstraint(vector< vector<double> >& matrix_val, vector<dou
 		if(r == num_row) {
 			r--;
 		}
-		alpha4 =  theta - r * gh;
+		alpha4 = theta - r * gh;
 		alpha4 = alpha4 / gh;
 		
 		feat.vertex[0] = nv_col*r + c;
@@ -2510,15 +2578,7 @@ void Optimisor::smoothConstraint2(vector< vector<double> >& matrix_val, vector<d
 	vector<double> col_idx_4(4), val_4(4);
 	vector<double> col_idx_5(5), val_5(5);
 	int num_row = align_data.mesh_data[0].ori_mesh.size()-1;
-#if NON_LOOP_GRID
-	int num_col = align_data.mesh_data[0].ori_mesh[0].size()-1;
-	int num_vert = (num_row+1)*(num_col+1);
-	// count #contraints of shape term
-	int h = (num_col-1)*(num_row+1); //df/dudu
-	int v = (num_col+1)*(num_row-1); //df/dvdv
-	int ne = num_row + num_col + (num_col-1)*(num_row-1) - 1; //df/dudv
-	double n_shape = (h+v+ne) * align_data.img_data.size();
-#endif
+
 #if LOOP_GRID
 	int num_col = align_data.mesh_data[0].ori_mesh[0].size();
 	int num_vert = (num_row+1) * num_col;
@@ -2529,35 +2589,11 @@ void Optimisor::smoothConstraint2(vector< vector<double> >& matrix_val, vector<d
 #endif
 	//double w = align_data.shape_weight / n_shape;
 	Size img_size = align_data.img_data[0].warp_imgs[0].size();
-	double test = min(img_size.height/num_row,img_size.width/num_col);
-	test=3000;
-	double w = 1;
+	
+	double w = 10;
 	for(int i = 0; i < num_vert; ++i) {
-		bool isEdge, isVer, isHor;
-#if NON_LOOP_GRID
-		if((i == 0) || (i == num_vert-1) || (i == (num_col+1)*num_row) || (i == num_col))
-			continue; //---- if i is corner, continue.
-		if(i > (num_col+1)*num_row)
-		{//----Down edge (Horizotal)----
-			isEdge = true;	isVer = false;	isHor = true;
-		}
-		else if(i < num_col)
-		{//---- Up edge (Horizotal)----
-			isEdge = false;	isVer = false;
-			isHor = (i==0) ? false : true;
-		}
-		else if(i % (num_col+1) == 0)
-		{//---- Left edge (Vertical)----
-			isEdge = true;	isVer = true;	isHor = false;
-		}
-		else if(i % (num_col+1)==num_col)
-		{//---- Right edge (Vertical)----
-			isEdge = true;	isVer = true;	isHor = false;
-		}
-		else {
-			isEdge = false;	isVer = true;	isHor = true;
-		}
-#endif
+		bool isVer, isHor, isEdge;
+
 #if LOOP_GRID
 		if(i >= num_col * num_row)
 		{//----Down edge (Horizotal)----
@@ -2606,15 +2642,18 @@ void Optimisor::smoothConstraint2(vector< vector<double> >& matrix_val, vector<d
 				matrix_val.push_back(constraint);
 			}
 			row_count++;
-			
-#if NON_LOOP_GRID
-			//b.push_back(0);
 			b.push_back(0);
-#endif
-#if LOOP_GRID
-			//b.push_back(-w * offset);
-			b.push_back(0);
-#endif
+
+			// dragonkao730 debug
+			/*
+			for(int s = 0; s < 4; ++s) {
+				cout << "r=" << row_count << endl;
+				cout << "c=" << num_vert*num + col_idx_4[s] << endl;
+				cout << "v=" << val_4[s] << endl;
+			}
+			assert(0);
+			*/
+
 		}
 		
 
@@ -2625,11 +2664,6 @@ void Optimisor::smoothConstraint2(vector< vector<double> >& matrix_val, vector<d
 			val_5[3] = -w/4;
 			val_5[4] = -w/4;
 
-#if NON_LOOP_GRID
-			col_idx_3[0] =  num_vert * n + i- (num_col+1);
-			col_idx_3[1] =  num_vert * n + i;
-			col_idx_3[2] =  num_vert * n + i+ (num_col+1);
-#endif
 #if LOOP_GRID
 			col_idx_5[0] =  i- num_col;
 			col_idx_5[1] =  i-1;
@@ -2652,8 +2686,18 @@ void Optimisor::smoothConstraint2(vector< vector<double> >& matrix_val, vector<d
 				matrix_val.push_back(constraint);
 			}
 			row_count++;
-
 			b.push_back(0);
+
+			// dragonkao730 debug 
+			/*
+			for(int s = 0; s < 5; ++s) {
+				cout << "r=" << row_count << endl;
+				cout << "c=" << num_vert*num + col_idx_5[s] << endl;
+				cout << "v=" << val_5[s] << endl;
+			}
+			assert(0);
+			*/
+
 		}
 		
 	}

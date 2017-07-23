@@ -14,6 +14,8 @@
 #include "alignment.h"
 #include <Eigen/Eigen>
 
+#include "linear_solve.h"
+
 #define USE_FEATURE 1;
 
 
