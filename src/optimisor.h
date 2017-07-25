@@ -2,19 +2,9 @@
 // linear optimization
 #ifndef OPTIMISOR_H
 #define OPTIMISOR_H
-
 #include <opencv2/opencv.hpp>
-/*
-#include <opencv2\core\core.hpp>
-#include <opencv2\highgui\highgui.hpp>
-#include <opencv2\imgproc\imgproc.hpp>
-*/
-
-
 #include "alignment.h"
-#include <Eigen/Eigen>
-
-#include "linear_solve.h"
+#include "Eigen/Eigen"
 
 #define USE_FEATURE 1;
 
@@ -46,9 +36,9 @@ class Optimisor{
 public:
 	Optimisor(AlignData& align_data, std::vector<Camera>& cameras);
 	Optimisor(AlignData& align_data);
-	
+	double linearSolve(); // used for aggregation
 	double linearSolve2();// used for another method
-	
+	double linearSolve3();// used for another method
 private:
 	//----- Image warping utilities -----//
 	void getWarpImage(cv::Mat& in_img, cv::Mat& out_img, cv::Mat& in_mask, cv::Mat& out_mask,  

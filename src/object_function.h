@@ -3,9 +3,12 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <tuple>
+#include <Eigen/Eigen>
 #include "linear_solve.h"
 
 using namespace std;
+using namespace Eigen;
 
 #define PI (atan(1) * 4)
 
@@ -70,26 +73,17 @@ AddCoefficient(Constrain &constrain,
 
 vector<Constrain> GetSpatialSmoothConstraint(const GridInfo &grid_info);
 
-/*
-typedef Vector2d ThetaPhiCoor;
-
-struct BarycentricCoor
-{
-    Vector3i vertex_row_index;
-    Vector3i vertex_col_index;
-    Vector3d coefficient;
-};
+vector<Constrain> GetTemporialSmoothConstraint(const GridInfo &grid_info, const int sild_window_w);
 
 struct DepthPoint
 {
-    ThetaPhiCoor theta_phi;
+    double theta;
+    double phi;
     double depth;
     int frame_index;
-    double &theta() { return theta_phi(0); }
-    double &phi() { return theta_phi(1); }
 };
 
-void AddDepthConstraint(const vector<DepthPoint> &depth_point,
-                        const GridInfo &grid_info,
-                        LinearSystem &linear_system);
-*/
+
+vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
+                                     const vector<DepthPoint> &depth_point_list);
+
