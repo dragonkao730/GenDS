@@ -1,6 +1,32 @@
 #include "object_function.h"
 
-vector<Constrain> GetSpatialSmoothConstraint(const GridInfo &grid_info)
+inline tuple<int, int, int>
+AddCoefficient(Constrain &constrain,
+               const GridInfo &grid_info,
+               int frame_index,
+               int vertex_row_index,
+               int vertex_col_index,
+               double coefficient)
+{
+    // frame
+    assert(frame_index >= 0 && frame_index < grid_info.n_frame);
+    // row
+    assert(vertex_row_index >= 0 && vertex_row_index < grid_info.n_vertex_row);
+    // col
+    while (vertex_col_index < 0) // loop grid
+        vertex_col_index += grid_info.n_vertex_col - 1;
+    vertex_col_index %= grid_info.n_vertex_col - 1;
+    // all
+    int param_index =
+        frame_index * grid_info.n_vertex_row * (grid_info.n_vertex_col - 1) +
+        vertex_row_index * (grid_info.n_vertex_col - 1) +
+        vertex_col_index;
+    constrain.coefficients.push_back(pair<int, double>(param_index, coefficient));
+    return tuple<int, int, int>(frame_index, vertex_row_index, vertex_col_index);
+}
+
+vector<Constrain>
+GetSecondSpatialSmoothConstraint(const GridInfo &grid_info)
 {
     vector<Constrain> constrain_list;
     for (int frame_index = 0; frame_index < grid_info.n_frame; frame_index++)
@@ -37,7 +63,9 @@ vector<Constrain> GetSpatialSmoothConstraint(const GridInfo &grid_info)
     return constrain_list;
 }
 
-vector<Constrain> GetTemporialSmoothConstraint(const GridInfo &grid_info, const int sild_window_w)
+vector<Constrain>
+GetTemporialSmoothConstraint(const GridInfo &grid_info,
+                             const int sild_window_w)
 {
     const int l_sid_w = sild_window_w / 2;
     const int r_sid_w = sild_window_w - l_sid_w - 1;
@@ -66,17 +94,6 @@ vector<Constrain> GetTemporialSmoothConstraint(const GridInfo &grid_info, const 
     }
     return constrain_list;
 }
-
-/*
-
-struct BarycentricCoor
-{
-    Vector3i vertex_row_index;
-    Vector3i vertex_col_index;
-    Vector3d coefficient;
-};
-
-*/
 
 // coefficient
 inline Vector3d
@@ -144,14 +161,16 @@ ThetaPhi2Barycentric(const GridInfo &grid_info,
     }
 #undef SET_BARYCENTRIC
     return barycentric;
-};
+}
 
-vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
-                                     const vector<DepthPoint> &depth_point_list)
+vector<Constrain>
+GetDepthConstraint(const GridInfo &grid_info,
+                   const vector<DepthPoint> &depth_point_list,
+                   set<tuple<int, int, int>> &depth_constrain_flag)
 {
     const int n_depth_point = depth_point_list.size();
     vector<Constrain> constrain_list(n_depth_point);
-    for (int depth_point_index = 0; depth_point_index < n_depth_point; depth_point_index++) // parallel???
+    for (int depth_point_index = 0; depth_point_index < n_depth_point; depth_point_index++) // 要改平行 還未完成
     {
         const DepthPoint &depth_point = depth_point_list[depth_point_index];
         Constrain &constrain = constrain_list[depth_point_index];
@@ -164,24 +183,66 @@ vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
         double *coefficient = get<2>(barycentric);
         // add coefficient
         const int frame_index = depth_point.frame_index;
-
-        static int testest = 0;
-
         for (int i = 0; i < 3; i++)
         {
-            if(testest == 10)
-                cout<<vertex_row_index[i]<<"&&"<<vertex_col_index[i]<<endl;
-            AddCoefficient(constrain,
-                           grid_info,
-                           frame_index,
-                           vertex_row_index[i],
-                           vertex_col_index[i],
-                           coefficient[i]);
+            depth_constrain_flag.insert(AddCoefficient(constrain,
+                                                       grid_info,
+                                                       frame_index,
+                                                       vertex_row_index[i],
+                                                       vertex_col_index[i],
+                                                       coefficient[i]));
         }
-
-        testest++;
-
         constrain.b = depth_point.depth;
     }
+    return constrain_list;
+}
+
+vector<Constrain>
+GetFirstSpatialSmoothConstraint(const GridInfo &grid_info,
+                                const set<tuple<int, int, int>> &depth_constrain_flag)
+{
+    vector<Constrain> constrain_list;
+    for (int frame_index = 0; frame_index < grid_info.n_frame; frame_index++)
+        for (int vertex_row_index = 0; vertex_row_index < grid_info.n_vertex_row; vertex_row_index++)
+            for (int vertex_col_index = 0; vertex_col_index < grid_info.n_vertex_col - 1; vertex_col_index++)
+                if (depth_constrain_flag.end() ==
+                    depth_constrain_flag.find(tuple<int, int, int>(frame_index,
+                                                                   vertex_row_index,
+                                                                   vertex_col_index)))
+                {
+                    // x
+                    Constrain constrain_x;
+                    AddCoefficient(constrain_x,
+                                   grid_info,
+                                   frame_index,
+                                   vertex_row_index,
+                                   vertex_col_index - 1,
+                                   -0.5);
+                    AddCoefficient(constrain_x,
+                                   grid_info,
+                                   frame_index,
+                                   vertex_row_index,
+                                   vertex_col_index + 1,
+                                   0.5);
+                    constrain_list.push_back(constrain_x);
+                    // y
+                    if (vertex_row_index > 0 & vertex_row_index < (grid_info.n_vertex_row - 1))
+                    {
+                        Constrain constrain_y;
+                        AddCoefficient(constrain_y,
+                                       grid_info,
+                                       frame_index,
+                                       vertex_row_index - 1,
+                                       vertex_col_index,
+                                       -0.5);
+                        AddCoefficient(constrain_y,
+                                       grid_info,
+                                       frame_index,
+                                       vertex_row_index + 1,
+                                       vertex_col_index,
+                                       0.5);
+                        constrain_list.push_back(constrain_y);
+                    }
+                }
     return constrain_list;
 }

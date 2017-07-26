@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <tuple>
+#include <set>
 #include <Eigen/Eigen>
 #include "linear_solve.h"
 
@@ -47,33 +48,12 @@ struct GridInfo
     }
 };
 
-inline void
-AddCoefficient(Constrain &constrain,
-               const GridInfo &grid_info,
-               int frame_index,
-               int vertex_row_index,
-               int vertex_col_index,
-               double coefficient)
-{
-    // frame
-    assert(frame_index >= 0 && frame_index < grid_info.n_frame);
-    // row
-    assert(vertex_row_index >= 0 && vertex_row_index < grid_info.n_vertex_row);
-    // col
-    while (vertex_col_index < 0) // loop grid
-        vertex_col_index += grid_info.n_vertex_col - 1;
-    vertex_col_index %= grid_info.n_vertex_col - 1;
-    // all
-    int param_index =
-        frame_index * grid_info.n_vertex_row * (grid_info.n_vertex_col - 1) +
-        vertex_row_index * (grid_info.n_vertex_col - 1) +
-        vertex_col_index;
-    constrain.coefficients.push_back(pair<int, double>(param_index, coefficient));
-};
+vector<Constrain>
+GetSecondSpatialSmoothConstraint(const GridInfo &grid_info);
 
-vector<Constrain> GetSpatialSmoothConstraint(const GridInfo &grid_info);
-
-vector<Constrain> GetTemporialSmoothConstraint(const GridInfo &grid_info, const int sild_window_w);
+vector<Constrain>
+GetTemporialSmoothConstraint(const GridInfo &grid_info,
+                             const int sild_window_w);
 
 struct DepthPoint
 {
@@ -83,6 +63,13 @@ struct DepthPoint
     int frame_index;
 };
 
-vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
-                                     const vector<DepthPoint> &depth_point_list);
+// depth_constrain_flag(frame_index, row_index, col_index) = bool
+// 改用 tensor 會比較好... 之後做修正
+vector<Constrain>
+GetDepthConstraint(const GridInfo &grid_info,
+                   const vector<DepthPoint> &depth_point_list,
+                   set<tuple<int, int, int>> &depth_constrain_flag);
 
+vector<Constrain>
+GetFirstSpatialSmoothConstraint(const GridInfo &grid_info,
+                                const set<tuple<int, int, int>> &depth_constrain_flag);
