@@ -104,14 +104,13 @@ ThetaPhi2Barycentric(const GridInfo &grid_info,
                      const double theta,
                      const double phi)
 {
-    const int rect_row_index = min(grid_info.n_rect_row - 1, int(theta / grid_info.rect_h));
-    const int rect_col_index = min(grid_info.n_rect_col - 1, int(phi / grid_info.rect_w));
+    const int rect_row_index = min(grid_info.n_rect_row - 1, int(phi / grid_info.rect_h));
+    const int rect_col_index = min(grid_info.n_rect_col - 1, int(theta / grid_info.rect_w));
     // gv = grid vertex
     //
     // gv[0] - gv[1] < upper
     // |     \     |
     // gv[2] - gv[3]
-    //
     // ^
     // lower
     Vector2d gv[4];
@@ -132,14 +131,14 @@ ThetaPhi2Barycentric(const GridInfo &grid_info,
     if (slop > grid_info.rect_diagonal_slop) // lower
     {
         SET_BARYCENTRIC(0, rect_row_index, rect_row_index + 1, rect_row_index + 1); // vertex_row_index
-        SET_BARYCENTRIC(1, rect_col_index, rect_col_index, rect_row_index + 1);     // vertex_col_index
+        SET_BARYCENTRIC(1, rect_col_index, rect_col_index, rect_col_index + 1);     // vertex_col_index
         Vector3d coefficient = GetBarycentric(Vector2d(theta, phi), gv[0], gv[2], gv[3]);
         SET_BARYCENTRIC(2, coefficient(0), coefficient(1), coefficient(2)); // coefficient
     }
     else // upper
     {
         SET_BARYCENTRIC(0, rect_row_index, rect_row_index, rect_row_index + 1);     // vertex_row_index
-        SET_BARYCENTRIC(1, rect_col_index, rect_col_index + 1, rect_row_index + 1); // vertex_col_index
+        SET_BARYCENTRIC(1, rect_col_index, rect_col_index + 1, rect_col_index + 1); // vertex_col_index
         Vector3d coefficient = GetBarycentric(Vector2d(theta, phi), gv[0], gv[1], gv[3]);
         SET_BARYCENTRIC(2, coefficient(0), coefficient(1), coefficient(2)); // coefficient
     }
@@ -165,8 +164,13 @@ vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
         double *coefficient = get<2>(barycentric);
         // add coefficient
         const int frame_index = depth_point.frame_index;
+
+        static int testest = 0;
+
         for (int i = 0; i < 3; i++)
-        {   
+        {
+            if(testest == 10)
+                cout<<vertex_row_index[i]<<"&&"<<vertex_col_index[i]<<endl;
             AddCoefficient(constrain,
                            grid_info,
                            frame_index,
@@ -174,6 +178,9 @@ vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
                            vertex_col_index[i],
                            coefficient[i]);
         }
+
+        testest++;
+
         constrain.b = depth_point.depth;
     }
     return constrain_list;

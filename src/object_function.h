@@ -83,7 +83,6 @@ struct DepthPoint
     int frame_index;
 };
 
-
 vector<Constrain> GetDepthConstraint(const GridInfo &grid_info,
                                      const vector<DepthPoint> &depth_point_list);
 
