@@ -1,120 +1,101 @@
+#include "gends.h"
 
-void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &depth_points)
+inline Vector3d
+ThetaPhi2XYZ(const Vector2d &theta_phi)
 {
-	Size equi_size = align_data.img_data[0].warp_imgs[0].size();
-	vector<Mat> camera_mat(cameras.size());
-	for (int i = 0; i < cameras.size(); ++i)
-	{
-		camera_mat[i] = Mat::zeros(4, 4, CV_64FC1);
-		buildCameraMatrix(cameras[i], camera_mat[i]);
-	}
-	vector<Mat> Rc(cameras.size());
-	vector<Mat> Tc(cameras.size());
-	for (int i = 0; i < cameras.size(); ++i)
-	{
-		Rc[i] = Mat::zeros(3, 3, CV_64FC1);
-		Tc[i] = Mat::zeros(3, 1, CV_64FC1);
-		for (int r = 0; r < 3; ++r)
-			for (int c = 0; c < 3; ++c)
-				Rc[i].at<double>(r, c) = camera_mat[i].at<double>(r, c);
-		for (int r = 0; r < 3; ++r)
-			Tc[i].at<double>(r) = camera_mat[i].at<double>(r, 3);
-		// compute origin offset of each camera
-		Tc[i] = Rc[i].t() * Tc[i];
-		Tc[i] = Tc[i].reshape(3, 1);
-	}
-	vector<vector<Vec3d>> baseline(cameras.size());
-	for (int i = 0; i < cameras.size(); ++i)
-	{
-		baseline[i].resize(cameras.size());
-		for (int j = 0; j < cameras.size(); ++j)
-			baseline[i][j] = (i == j) ? Vec3d(0.0, 0.0, 0.0) : cameras[j].pos - cameras[i].pos;
-	}
-	int count = 0, count14 = 0, count16 = 0, count18 = 0;
-	for (int i = 0; i < corres.size(); ++i)
-	{
-		Correspondence corr = corres[i];
+	const double &theta = theta_phi(0);
+	const double &phi = theta_phi(1);
+	return Vector3d(sin(theta) * sin(phi),
+					-cos(phi),
+					cos(theta) * sin(phi));
+}
 
-		// compute 3D points for each corres
-		int m = corr.m;
-		int n = corr.n;
-		Point2f fm = corr.fm;
-		Point2f fn = corr.fn;
-		/*if((abs(fm.x-fn.x)>200)&&(abs(3000+(fm.x-fn.x)>200)))
-			continue;*/
-		if (fm == fn) // mean depth is infinite set to 10000
+inline Vector2d
+XYZ2ThetaPhi(Vector3d xyz)
+{
+	xyz /= xyz.norm();
+	double theta = atan(xyz(0) / xyz(2));
+	double phi = acos(-xyz(1));
+	if (xyz(2) < 0.0)
+		theta += PI;
+	else if (xyz(0) < 0.0)
+		theta += 2 * PI;
+	return Vector2d(theta, phi);
+}
+
+DepthPoint
+GetDepthPoint(const FeaturePair &feature_pair,
+			  const PolyCamera &ploy_camera,
+			  const int frame_index)
+{
+	// input
+	const Vector3d xyz_m = ThetaPhi2XYZ(feature_pair.first.theta_phi);  // norm
+	const Vector3d xyz_n = ThetaPhi2XYZ(feature_pair.second.theta_phi); // norm
+	const Vector3d &baseline = ploy_camera.baseline(feature_pair.first.camera_index,
+													feature_pair.second.camera_index);
+	// theta
+	const double t = baseline.norm();
+	const Vector3d e = baseline / t;
+	const double theta_m = acos(e.dot(xyz_m));
+	const double theta_n = acos(e.dot(xyz_n));
+	// depth
+	double d_m = numeric_limits<double>::infinity();
+	double d_n = numeric_limits<double>::infinity();
+	if (theta_m != theta_n)
+	{
+		d_m = t * sin(theta_n) / sin(theta_n - theta_m);
+		d_n = t * sin(theta_m) / sin(theta_n - theta_m);
+	}
+	// p
+	const Vector3d xyz_p = (xyz_m * d_m +
+							ploy_camera.position[feature_pair.first.camera_index] +
+							xyz_n * d_n +
+							ploy_camera.position[feature_pair.second.camera_index]) *
+						   0.5;
+	const Vector2d theta_phi_p = XYZ2ThetaPhi(xyz_p);
+	// return
+	double depth = min(DEPTH_MAX, xyz_p.norm());
+	if (d_m < 0 | d_n < 0)
+		depth *= -1.0;
+	return DepthPoint(theta_phi_p(0), theta_phi_p(1), depth, frame_index);
+}
+
+Tensor<double, 3>
+GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
+						 const PolyCamera &ploy_camera,
+						 const int n_row,
+						 const int n_col,
+						 const double depth_constrain_weight,
+						 const double first_spatial_smooth_constraint_weight,
+						 const double second_spatial_smooth_constraint_weight,
+						 const double temporial_smooth_constraint_weight)
+{
+	const int n_frame = feature_pair_list.size();
+	GridInfo grid_info(n_frame, n_row, n_col);
+	// new depth_point_list
+	vector<DepthPoint> *depth_point_list = new vector<DepthPoint>();
+	for (int frame_index = 0; frame_index < n_frame; frame_index++)
+	{
+		for (auto &feature_pair : feature_pair_list[frame_index])
 		{
-			Vec3d ps;
-			equi2Sphere(fm, ps, equi_size);
-
-			ps /= cv::norm(ps);
-
-			double theta = acos(-ps[1]);
-			double phi = atan(ps[0] / ps[2]);
-			if (ps[2] < 0.0)
-				phi += CV_PI;
-			else if (ps[0] < 0.0)
-				phi += 2 * CV_PI;
-
-			ps[0] = 1000000; //r
-			ps[1] = phi;	 //theta
-			ps[2] = theta;   //phi
-
-			depth_points.push_back(ps);
-			continue;
-		}
-		// currently size of input image and output image are the same
-
-		Vec3d psm, psn;
-		double theta_m, theta_n;
-		double Dm = equiCorre2Depth(fm, fn, baseline[m][n], equi_size, psm, psn, theta_m, theta_n);
-		if (Dm > 0.0)
-		{
-			double t = norm(baseline[m][n]);
-			// compute 3D point from camera n also, and average the position
-			psm *= Dm;
-			double Dn = -t * sin(theta_m) / sin(theta_m - theta_n);
-			psn *= Dn;
-
-			psm = psm - Tc[m].at<Vec3d>(0);
-			psn = psn - Tc[n].at<Vec3d>(0);
-
-			Vec3d ps = (psm + psn) * 0.5;
-
-			double depth = cv::norm(ps);
-			ps /= depth;
-
-			Point2f pe;
-			//here to select mode
-			//sphere2Equi(ps, pe, equi_size);
-			sphere2Rad(ps, pe);
-			//pe.x:phi, pe.y:theata
-			/*double theta = acos(-ps[1]);
-			double phi = atan(ps[0] / ps[2]);
-			if(ps[2] < 0.0)
-				phi += CV_PI;
-			else if(ps[0] < 0.0)
-				phi += 2 * CV_PI;*/
-
-			if (depth > 1e+6)
-				depth = 1e+6;
-
-			ps[0] = depth; //r
-			ps[1] = pe.x;  //phi
-			ps[2] = pe.y;  //theata
-
-			depth_points.push_back(ps);
-			if (depth > 1e8)
-				count18++;
-			else if (depth > 1e6)
-				count16++;
-			else if (depth > 1e4)
-				count14++;
-			count++;
-			/*if(depth<100)
-				cout<<i<<endl;*/
+			DepthPoint depth_point = GetDepthPoint(feature_pair,
+												   ploy_camera,
+												   frame_index);
+			if (depth_point.depth > 0)
+				depth_point_list->push_back(depth_point);
 		}
 	}
-	//cout<<equi_size.width<<"\t"<<equi_size.height<<endl;
-	//cout<<"ALL:"<<count<<",14:"<<count14<<",16:"<<count16<<",18:"<<count18<<endl;
+	// new depth_constrain
+{
+	vector<Constrain> *depth_constrain;
+	*depth_constrain = GetDepthConstraint(grid_info,
+										  depth_point_list,
+										  set<tuple<int, int, int>> &depth_constrain_flag);
+}
+
+
+
+
+	// depth < 0 不會push
+	return Tensor<double, 3>(3, 3, 3);
 }

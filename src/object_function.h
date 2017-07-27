@@ -6,6 +6,7 @@
 #include <tuple>
 #include <set>
 #include <Eigen/Eigen>
+
 #include "linear_solve.h"
 
 using namespace std;
@@ -61,6 +62,16 @@ struct DepthPoint
     double phi;
     double depth;
     int frame_index;
+    DepthPoint(const double theta,
+               const double phi,
+               const double depth,
+               const int frame_index)
+    {
+        this->theta = theta;
+        this->phi = phi;
+        this->depth = depth;
+        this->frame_index = frame_index;
+    }
 };
 
 // depth_constrain_flag(frame_index, row_index, col_index) = bool

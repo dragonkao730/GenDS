@@ -7,6 +7,7 @@
 
 #include "object_function.h"
 #include "linear_solve.h"
+#include "gends.h"
 
 using namespace std;
 using namespace cv;
@@ -620,6 +621,7 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 	{
 		camera_mat[i] = Mat::zeros(4, 4, CV_64FC1);
 		buildCameraMatrix(cameras[i], camera_mat[i]);
+		cout << cameras[i].pos << endl; 
 	}
 	vector<Mat> Rc(cameras.size());
 	vector<Mat> Tc(cameras.size());
@@ -643,9 +645,11 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 		for (int j = 0; j < cameras.size(); ++j)
 			baseline[i][j] = (i == j) ? Vec3d(0.0, 0.0, 0.0) : cameras[j].pos - cameras[i].pos;
 	}
-	int count = 0, count14 = 0, count16 = 0, count18 = 0;
+
+
 	for (int i = 0; i < corres.size(); ++i)
 	{
+
 		Correspondence corr = corres[i];
 
 		// compute 3D points for each corres
@@ -653,26 +657,20 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 		int n = corr.n;
 		Point2f fm = corr.fm;
 		Point2f fn = corr.fn;
-		/*if((abs(fm.x-fn.x)>200)&&(abs(3000+(fm.x-fn.x)>200)))
-			continue;*/
 		if (fm == fn) // mean depth is infinite set to 10000
 		{
 			Vec3d ps;
 			equi2Sphere(fm, ps, equi_size);
-
 			ps /= cv::norm(ps);
-
 			double theta = acos(-ps[1]);
 			double phi = atan(ps[0] / ps[2]);
 			if (ps[2] < 0.0)
 				phi += CV_PI;
 			else if (ps[0] < 0.0)
 				phi += 2 * CV_PI;
-
 			ps[0] = 1000000; //r
 			ps[1] = phi;	 //theta
 			ps[2] = theta;   //phi
-
 			depth_points.push_back(ps);
 			continue;
 		}
@@ -689,6 +687,7 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 			double Dn = -t * sin(theta_m) / sin(theta_m - theta_n);
 			psn *= Dn;
 
+			// 這啥
 			psm = psm - Tc[m].at<Vec3d>(0);
 			psn = psn - Tc[n].at<Vec3d>(0);
 
@@ -717,19 +716,12 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 			ps[2] = pe.y;  //theata
 
 			depth_points.push_back(ps);
-			if (depth > 1e8)
-				count18++;
-			else if (depth > 1e6)
-				count16++;
-			else if (depth > 1e4)
-				count14++;
-			count++;
-			/*if(depth<100)
-				cout<<i<<endl;*/
+
+			//cout << depth << endl;
 		}
 	}
-	//cout<<equi_size.width<<"\t"<<equi_size.height<<endl;
-	//cout<<"ALL:"<<count<<",14:"<<count14<<",16:"<<count16<<",18:"<<count18<<endl;
+
+	assert(false);
 }
 
 void Optimisor::drawComposition()
@@ -972,12 +964,11 @@ double Optimisor::linearSolve()
 }
 
 void TempTransform(const vector<Constrain> &constrain_list,
-                 vector<vector<double>> &matrix_val,
-                 vector<double> &b,
-                 int &row_count,
-                 double w)
+				   vector<vector<double>> &matrix_val,
+				   vector<double> &b,
+				   int &row_count,
+				   double w)
 {
-	//cout << constrain_list.size() << endl;
 	for (auto &constrain : constrain_list)
 	{
 		for (auto &coefficient : constrain.coefficients)
@@ -986,27 +977,9 @@ void TempTransform(const vector<Constrain> &constrain_list,
 			val[0] = row_count;
 			val[1] = int(coefficient.first);
 			val[2] = coefficient.second * w;
-
-			// debug
-			/*
-			cout << "============" << endl;
-            cout << "r=" << val[0] << endl;
-            cout << "c=" << val[1] << endl;
-            cout << "v=" << val[2] << endl;
-			*/
-			
-            matrix_val.push_back(val);        
+			matrix_val.push_back(val);
 		}
-		
-		//debug
-		/*
-		static int dragonkaodebug = 10;
-		assert(dragonkaodebug);
-		dragonkaodebug --;
-		*/
-		
-        b.push_back(constrain.b * w);
-
+		b.push_back(constrain.b * w);
 		row_count++;
 	}
 }
@@ -1039,33 +1012,37 @@ double Optimisor::linearSolve2()
 		vector<double> b;
 
 		// === add anchor points ============//
-		
+
 		//for (int i = 0; i < frame_limit; i++)
 		//	depthConstraint(matrix_val, b, row_count, depth_points[frame_limit * s + i], i);
-		
-		const GridInfo grid_info(20, 20, 20);
+
+		vector<DepthPoint> my_dp_list;
 		for (int iii = 0; iii < 20; iii++)
 		{
-			vector<DepthPoint> my_dp_list;
 			for (auto &dp : depth_points[iii])
 			{
-				DepthPoint my_dp;
+				DepthPoint my_dp(dp[1], dp[2], dp[0], iii);
 				my_dp.theta = dp[1];
 				my_dp.phi = dp[2];
 				my_dp.depth = dp[0];
 				my_dp.frame_index = iii;
-				//if(my_dp.theta>6.28)
-				//	cout << "theta=" << my_dp.theta << endl;
-				//if(my_dp.phi>3.14)
-				//	cout << "phi=" << my_dp.phi << endl;
 				my_dp_list.push_back(my_dp);
 			}
-			TempTransform(GetDepthConstraint(grid_info, my_dp_list),
-                     matrix_val,
-                     b,
-                     row_count,
-                     align_data.feat_weight);
 		}
+		const GridInfo grid_info(20, 20, 20);
+		set<tuple<int, int, int>> depth_constrain_flag;
+		TempTransform(GetDepthConstraint(grid_info, my_dp_list, depth_constrain_flag),
+					  matrix_val,
+					  b,
+					  row_count,
+					  align_data.feat_weight);
+
+		set<tuple<int, int, int>> dump_set;
+		TempTransform(GetFirstSpatialSmoothConstraint(grid_info, dump_set),
+					  matrix_val,
+					  b,
+					  row_count,
+					  1);
 
 		// === add constraint of smoothness term ===== //
 		cout << "smooth constraint" << endl;
@@ -2278,95 +2255,89 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 			constraint[0] = row_count;
 			constraint[1] = num_vert * num + col_idx[c_c];
 			constraint[2] = val[c_c];
-			//dragon debug
-			cout << "===================" << endl;
-			cout << "r=" << constraint[0] << endl;
-			cout << "c=" << constraint[1] << endl;
-			cout << "v=" << constraint[2] << endl;
-			//dragon
+
 			matrix_val.push_back(constraint);
 			verticecount[col_idx[c_c]] += 1;
 		}
 		row_count++;
-
-		//debug
-		static int dragonkaodebug = 10;
-		assert(dragonkaodebug);
-		dragonkaodebug --;
-        
 		b.push_back(ps[0]);
 	}
 
 	vector<double> col_idx_2(2), val_2(2);
 	w = 1;
-	/*
-	for(int i=0;i<num_vert;i++)
+
+	for (int i = 0; i < num_vert; i++)
 	{
-		//Ex,Ey
-		//cout<<verticecount[i]<<"\t";
-		//if((i+1)%num_col==0)
-		//	cout<<endl;
-		if(verticecount[i]==0){
-		//if(1){
-				bool isEdge, isVer, isHor;
+		//if (verticecount[i] == 0)
+		if (true)
+		{
+			//if(1){
+			bool isEdge, isVer, isHor;
 
-			if(i >= num_col * num_row)
-			{//----Down edge (Horizotal)----
-				isEdge = true;	isVer = false;	isHor = true;
+			if (i >= num_col * num_row)
+			{ //----Down edge (Horizotal)----
+				isEdge = true;
+				isVer = false;
+				isHor = true;
 			}
-			else if(i < num_col)
-			{//---- Up edge (Horizotal)----
-				isEdge = false;	isVer = false; isHor = true;
+			else if (i < num_col)
+			{ //---- Up edge (Horizotal)----
+				isEdge = false;
+				isVer = false;
+				isHor = true;
 			}
-			else {
-				isEdge = false;	isVer = true;	isHor = false;
+			else
+			{
+				isEdge = false;
+				isVer = true;
+				isHor = false;
 			}
 
-			if(isHor) {
-				val_2[0] = w/2;
-				val_2[1] = -w/2;
-				
+			if (isHor)
+			{
+				val_2[0] = w / 2;
+				val_2[1] = -w / 2;
+
 				//x
-				col_idx_2[0] =  i+1 ;
-				col_idx_2[1] =  i-1;
-				
-				if(i % num_col == 0)
-					col_idx_2[1] = i + num_col-1;
-				
-				if(i % num_col == num_col - 1)
-					col_idx_2[0] = i - num_col+1;
+				col_idx_2[0] = i + 1;
+				col_idx_2[1] = i - 1;
 
-				for(int s = 0; s < 2; ++s) {
+				if (i % num_col == 0)
+					col_idx_2[1] = i + num_col - 1;
+
+				if (i % num_col == num_col - 1)
+					col_idx_2[0] = i - num_col + 1;
+
+				for (int s = 0; s < 2; ++s)
+				{
 					constraint[0] = row_count;
-					constraint[1] = num_vert*num + col_idx_2[s];
+					constraint[1] = num_vert * num + col_idx_2[s];
 					constraint[2] = val_2[s];
 					matrix_val.push_back(constraint);
 				}
 				row_count++;
 				b.push_back(0);
-				
 			}
-		
 
-			if(isVer) {
-				val_2[0] = w/2;
-				val_2[1] = -w/2;
+			if (isVer)
+			{
+				val_2[0] = w / 2;
+				val_2[1] = -w / 2;
 				//x
-	
-				col_idx_2[0] =  i+1;
-				col_idx_2[1] =  i-1;
 
-				if(i % num_col == 0)
-					col_idx_2[1] = i + num_col-1;
-				
-				if(i % num_col == num_col - 1)
-					col_idx_2[0] = i - num_col+1;
+				col_idx_2[0] = i + 1;
+				col_idx_2[1] = i - 1;
 
-	
+				if (i % num_col == 0)
+					col_idx_2[1] = i + num_col - 1;
 
-				for(int s = 0; s < 2; ++s) {
+				if (i % num_col == num_col - 1)
+					col_idx_2[0] = i - num_col + 1;
+
+				for (int s = 0; s < 2; ++s)
+				{
 					constraint[0] = row_count;
-					constraint[1] = num_vert*num + col_idx_2[s];
+					constraint[1] = num_vert * num + col_idx_2[s];
 					constraint[2] = val_2[s];
 					matrix_val.push_back(constraint);
 				}
@@ -2374,22 +2345,21 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 				b.push_back(0);
 
 				//y
-				col_idx_2[0] =  i+num_col ;
-				col_idx_2[1] =  i-num_col;
+				col_idx_2[0] = i + num_col;
+				col_idx_2[1] = i - num_col;
 
-				for(int s = 0; s < 2; ++s) {
+				for (int s = 0; s < 2; ++s)
+				{
 					constraint[0] = row_count;
-					constraint[1] = num_vert*num + col_idx_2[s];
+					constraint[1] = num_vert * num + col_idx_2[s];
 					constraint[2] = val_2[s];
 					matrix_val.push_back(constraint);
 				}
 				row_count++;
 				b.push_back(0);
 			}
-
 		}
 	}
-	*/
 }
 void Optimisor::depthConstraint2(vector<vector<double>> &matrix_val, vector<double> &b, int &row_count, vector<Vec3d> &depth_points)
 {
