@@ -716,12 +716,8 @@ void Optimisor::getDepthPoints(vector<Correspondence> &corres, vector<Vec3d> &de
 			ps[2] = pe.y;  //theata
 
 			depth_points.push_back(ps);
-
-			//cout << depth << endl;
 		}
 	}
-
-	assert(false);
 }
 
 void Optimisor::drawComposition()
@@ -1012,54 +1008,20 @@ double Optimisor::linearSolve2()
 		vector<double> b;
 
 		// === add anchor points ============//
-
-		//for (int i = 0; i < frame_limit; i++)
-		//	depthConstraint(matrix_val, b, row_count, depth_points[frame_limit * s + i], i);
-
-		vector<DepthPoint> my_dp_list;
-		for (int iii = 0; iii < 20; iii++)
-		{
-			for (auto &dp : depth_points[iii])
-			{
-				DepthPoint my_dp(dp[1], dp[2], dp[0], iii);
-				my_dp.theta = dp[1];
-				my_dp.phi = dp[2];
-				my_dp.depth = dp[0];
-				my_dp.frame_index = iii;
-				my_dp_list.push_back(my_dp);
-			}
-		}
-		const GridInfo grid_info(20, 20, 20);
-		set<tuple<int, int, int>> depth_constrain_flag;
-		TempTransform(GetDepthConstraint(grid_info, my_dp_list, depth_constrain_flag),
-					  matrix_val,
-					  b,
-					  row_count,
-					  align_data.feat_weight);
-
-		set<tuple<int, int, int>> dump_set;
-		TempTransform(GetFirstSpatialSmoothConstraint(grid_info, dump_set),
-					  matrix_val,
-					  b,
-					  row_count,
-					  1);
+		for (int i = 0; i < frame_limit; i++)
+			depthConstraint(matrix_val, b, row_count, depth_points[frame_limit * s + i], i);
 
 		// === add constraint of smoothness term ===== //
 		cout << "smooth constraint" << endl;
-		for (int i = 0; i < frame_limit; i++)
-			smoothConstraint2(matrix_val, b, row_count, i);
+		//for (int i = 0; i < frame_limit; i++)
+		//	smoothConstraint2(matrix_val, b, row_count, i);
 
 		/// === add constraint of time smoothness term ===== //
 		int max_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size() * frame_limit;
-		cout << "temporal constraint" << endl;
-		if (frame_num > 1)
-			temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
-		// === add constraint of origin term (boundary condition) =====//
-		/*cout << "	origin constraint"<<endl;
-		for(size_t i = 0; i < align_data.img_data.size(); ++i)
-			originConstraint(matrix_val, b, i, row_count);*/
-
-		// Transfer the linear system into Eigen interface
+		//cout << "temporal constraint" << endl;
+		//if (frame_num > 1)
+		//	temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
+		
 
 		unsigned long startTime = clock();
 		int num_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size();
@@ -1095,6 +1057,8 @@ double Optimisor::linearSolve2()
 
 		Eigen::VectorXd X3 = linearSolver.solve(B);
 		cout << "over otimizes" << endl;
+		cout << X3 << endl;
+		assert(false);
 
 		for (int i = 0; i < num_vert * frame_limit; i++)
 		{
