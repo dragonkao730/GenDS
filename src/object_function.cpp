@@ -210,7 +210,6 @@ GetFirstSpatialSmoothConstraint(const GridInfo &grid_info,
                                                                    vertex_row_index,
                                                                    vertex_col_index)))
                 {
-                    cout << "add" << endl; 
                     // x
                     Constrain constrain_x;
                     AddCoefficient(constrain_x,
@@ -244,10 +243,6 @@ GetFirstSpatialSmoothConstraint(const GridInfo &grid_info,
                                        0.5);
                         constrain_list.push_back(constrain_y);
                     }
-                }
-                else
-                {
-                    cout << "skip" << endl;
                 }
     return constrain_list;
 }
