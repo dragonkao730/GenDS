@@ -1013,13 +1013,13 @@ double Optimisor::linearSolve2()
 
 		// === add constraint of smoothness term ===== //
 		cout << "smooth constraint" << endl;
-		//for (int i = 0; i < frame_limit; i++)
-		//	smoothConstraint2(matrix_val, b, row_count, i);
+		for (int i = 0; i < frame_limit; i++)
+			smoothConstraint2(matrix_val, b, row_count, i);
 		/// === add constraint of time smoothness term ===== //
 		int max_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size() * frame_limit;
 		cout << "temporal constraint" << endl;
-		//if (frame_num > 1)
-		//	temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
+		if (frame_num > 1)
+			temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
 		
 
 		unsigned long startTime = clock();
