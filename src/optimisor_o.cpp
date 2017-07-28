@@ -1013,13 +1013,13 @@ double Optimisor::linearSolve2()
 
 		// === add constraint of smoothness term ===== //
 		cout << "smooth constraint" << endl;
-		for (int i = 0; i < frame_limit; i++)
-			smoothConstraint2(matrix_val, b, row_count, i);
+		//for (int i = 0; i < frame_limit; i++)
+		//	smoothConstraint2(matrix_val, b, row_count, i);
 		/// === add constraint of time smoothness term ===== //
 		int max_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size() * frame_limit;
 		cout << "temporal constraint" << endl;
-		if (frame_num > 1)
-			temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
+		//if (frame_num > 1)
+		//	temperalSmoothConstraint(matrix_val, b, row_count, max_vert);
 		
 
 		unsigned long startTime = clock();
@@ -2228,11 +2228,10 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 
 	vector<double> col_idx_2(2), val_2(2);
 	w = 1;
-	/*
 	for (int i = 0; i < num_vert; i++)
 	{
-		//if (verticecount[i] == 0)
-		if (true)
+		if (verticecount[i] == 0)
+		//if (true)
 		{
 			//if(1){
 			bool isEdge, isVer, isHor;
@@ -2323,7 +2322,7 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 			}
 		}
 	}
-	*/
+	
 }
 void Optimisor::depthConstraint2(vector<vector<double>> &matrix_val, vector<double> &b, int &row_count, vector<Vec3d> &depth_points)
 {
