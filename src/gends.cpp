@@ -138,6 +138,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 						 all_constrain);
 		}
 		// first_spatial_smooth_constraint
+		/*
 		{
 			cout << "first_spatial_smooth_constraint" << endl;
 			vector<Constrain> first_spatial_smooth_constraint =
@@ -147,8 +148,10 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 						 first_spatial_smooth_constraint_weight,
 						 all_constrain);
 		}
+		*/
 	}
 	// second_spatial_smooth_constraint
+	/*
 	{
 		cout << "second_spatial_smooth_constraint" << endl;
 		vector<Constrain> second_spatial_smooth_constraint =
@@ -157,7 +160,9 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 					 second_spatial_smooth_constraint_weight,
 					 all_constrain);
 	}
+	*/
 	// temporial_smooth_constraint
+	/*
 	{
 		cout << "temporial_smooth_constraint" << endl;
 		vector<Constrain> temporial_smooth_constraint =
@@ -166,10 +171,14 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 					 temporial_smooth_constraint_weight,
 					 all_constrain);
 	}
+	*/
 	// result
 	VectorXd result_vector = linearSolve(all_constrain, n_frame * (n_rect_row + 1) * n_rect_col);
+	
+	cout << result_vector << endl;
+	assert(false);
+
 	Tensor<double, 3> result_tensor(n_frame, n_rect_row + 1, n_rect_col);
-	//result_tensor << result_vector;
 	
 	for (int frame_index = 0; frame_index < n_frame; frame_index++)
 		for (int row_index = 0; row_index < n_rect_row + 1; row_index++)
