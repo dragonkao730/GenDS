@@ -21,7 +21,7 @@ struct FeaturePoint
     //  |
     //  v
     //  phi, y
-    
+
     int camera_index;
     Vector2d theta_phi;
 };
@@ -65,9 +65,9 @@ struct PolyCamera
 Tensor<double, 3>
 GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
                          const PolyCamera &ploy_camera,
-                         const int n_row,
-                         const int n_col,
-                         const double depth_constrain_weight,
-                         const double first_spatial_smooth_constraint_weight,
-                         const double second_spatial_smooth_constraint_weight,
-                         const double temporial_smooth_constraint_weight);
+                         const int n_rect_row = 20,
+                         const int n_rect_col = 20,
+                         const double depth_constrain_weight = 1.0,
+                         const double first_spatial_smooth_constraint_weight = 1.0,
+                         const double second_spatial_smooth_constraint_weight = 1.0,
+                         const double temporial_smooth_constraint_weight = 1.0);
