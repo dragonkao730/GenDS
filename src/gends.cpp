@@ -23,7 +23,7 @@ XYZ2ThetaPhi(Vector3d xyz)
 	return Vector2d(theta, phi);
 }
 
-DepthPoint
+inline DepthPoint
 GetDepthPoint(const FeaturePair &feature_pair,
 			  const PolyCamera &ploy_camera,
 			  const int frame_index)
@@ -60,42 +60,122 @@ GetDepthPoint(const FeaturePair &feature_pair,
 	return DepthPoint(theta_phi_p(0), theta_phi_p(1), depth, frame_index);
 }
 
+inline void
+AddDephPoint(const vector<FeaturePair> &feature_pair_list,
+			 const PolyCamera &ploy_camera,
+			 const int frame_index,
+			 vector<DepthPoint> &depth_point_list)
+{
+	for (auto &feature_pair : feature_pair_list)
+	{
+		DepthPoint depth_point = GetDepthPoint(feature_pair,
+											   ploy_camera,
+											   frame_index);
+		if (depth_point.depth > 0)
+			depth_point_list.push_back(depth_point);
+	}
+}
+
+inline void
+AddDephPoint(const vector<vector<FeaturePair>> &feature_pair_list,
+			 const PolyCamera &ploy_camera,
+			 vector<DepthPoint> &depth_point_list)
+{
+	const int n_frame = feature_pair_list.size();
+	for (int frame_index = 0; frame_index < n_frame; frame_index++)
+	{
+		AddDephPoint(feature_pair_list[frame_index],
+					 ploy_camera,
+					 frame_index,
+					 depth_point_list);
+	}
+}
+
+inline void
+AddConstrain(const vector<Constrain> &x_constrain,
+			 const double x_weight,
+			 vector<Constrain> &constrain_list)
+{
+	for (auto &constrain : x_constrain) // 平行?
+	{
+		Constrain new_constrain(constrain);
+		for (auto &val : new_constrain.coefficients)
+			val.second *= x_weight;
+		new_constrain.b *= x_weight;
+		constrain_list.push_back(new_constrain);
+	}
+}
+
 Tensor<double, 3>
 GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 						 const PolyCamera &ploy_camera,
-						 const int n_row,
-						 const int n_col,
+						 const int n_rect_row,
+						 const int n_rect_col,
 						 const double depth_constrain_weight,
 						 const double first_spatial_smooth_constraint_weight,
 						 const double second_spatial_smooth_constraint_weight,
 						 const double temporial_smooth_constraint_weight)
 {
 	const int n_frame = feature_pair_list.size();
-	GridInfo grid_info(n_frame, n_row, n_col);
-	// new depth_point_list
-	vector<DepthPoint> *depth_point_list = new vector<DepthPoint>();
-	for (int frame_index = 0; frame_index < n_frame; frame_index++)
+	GridInfo grid_info(n_frame, n_rect_row, n_rect_col);
+	vector<Constrain> all_constrain;
+	// depth_constrain and first_spatial_smooth_constraint
 	{
-		for (auto &feature_pair : feature_pair_list[frame_index])
+		set<tuple<int, int, int>> depth_constrain_flag;
+		// depth_constrain
 		{
-			DepthPoint depth_point = GetDepthPoint(feature_pair,
-												   ploy_camera,
-												   frame_index);
-			if (depth_point.depth > 0)
-				depth_point_list->push_back(depth_point);
+			vector<DepthPoint> depth_point_list;
+			AddDephPoint(feature_pair_list,
+						 ploy_camera,
+						 depth_point_list);
+			vector<Constrain> depth_constrain =
+				GetDepthConstraint(grid_info,
+								   depth_point_list,
+								   depth_constrain_flag);
+			AddConstrain(depth_constrain,
+						 depth_constrain_weight,
+						 all_constrain);
+		}
+		// first_spatial_smooth_constraint
+		{
+			vector<Constrain> first_spatial_smooth_constraint =
+				GetFirstSpatialSmoothConstraint(grid_info,
+												depth_constrain_flag);
+			AddConstrain(first_spatial_smooth_constraint,
+						 first_spatial_smooth_constraint_weight,
+						 all_constrain);
 		}
 	}
-	// new depth_constrain
-{
-	vector<Constrain> *depth_constrain;
-	*depth_constrain = GetDepthConstraint(grid_info,
-										  depth_point_list,
-										  set<tuple<int, int, int>> &depth_constrain_flag);
-}
-
-
-
-
-	// depth < 0 不會push
-	return Tensor<double, 3>(3, 3, 3);
+	// second_spatial_smooth_constraint
+	{
+		vector<Constrain> second_spatial_smooth_constraint =
+			GetSecondSpatialSmoothConstraint(grid_info);
+		AddConstrain(second_spatial_smooth_constraint,
+					 second_spatial_smooth_constraint_weight,
+					 all_constrain);
+	}
+	// temporial_smooth_constraint
+	{
+		vector<Constrain> temporial_smooth_constraint =
+			GetTemporialSmoothConstraint(grid_info, 5);
+		AddConstrain(temporial_smooth_constraint,
+					 temporial_smooth_constraint_weight,
+					 all_constrain);
+	}
+	// result
+	VectorXd result_vector = linearSolve(all_constrain, n_frame * (n_rect_row + 1) * n_rect_col);
+	Tensor<double, 3> result_tensor(n_frame, n_rect_row + 1, n_rect_col);
+	//result_tensor << result_vector;
+	
+	for (int frame_index = 0; frame_index < n_frame; frame_index++)
+		for (int row_index = 0; row_index < n_rect_row + 1; row_index++)
+			for (int col_index = 0; col_index < n_rect_row; col_index++)
+			{
+				result_tensor(frame_index, row_index, col_index) =
+					result_vector(frame_index * ((n_rect_row + 1) * n_rect_col) +
+								  row_index * n_rect_col +
+								  col_index);
+			}
+	
+	return result_tensor;
 }

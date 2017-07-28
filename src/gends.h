@@ -15,12 +15,12 @@ using namespace Eigen;
 #define PI (atan(1) * 4)
 #define DEPTH_MAX (1e+6)
 
-//     --> theta, x
-//  |
-//  v
-//  phi, y
 struct FeaturePoint
 {
+    //     --> theta, x
+    //  |
+    //  v
+    //  phi, y
     int camera_index;
     Vector2d theta_phi;
 };
@@ -61,7 +61,7 @@ struct PolyCamera
 };
 
 //n_frame, n_row, n_col
-Eigen::Tensor<double, 3>
+Tensor<double, 3>
 GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
                          const PolyCamera &ploy_camera,
                          const int n_row,
