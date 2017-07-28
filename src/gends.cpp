@@ -124,6 +124,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 		set<tuple<int, int, int>> depth_constrain_flag;
 		// depth_constrain
 		{
+			cout << "depth_constrain" << endl;
 			vector<DepthPoint> depth_point_list;
 			AddDephPoint(feature_pair_list,
 						 ploy_camera,
@@ -138,6 +139,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 		}
 		// first_spatial_smooth_constraint
 		{
+			cout << "first_spatial_smooth_constraint" << endl;
 			vector<Constrain> first_spatial_smooth_constraint =
 				GetFirstSpatialSmoothConstraint(grid_info,
 												depth_constrain_flag);
@@ -148,6 +150,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 	}
 	// second_spatial_smooth_constraint
 	{
+		cout << "second_spatial_smooth_constraint" << endl;
 		vector<Constrain> second_spatial_smooth_constraint =
 			GetSecondSpatialSmoothConstraint(grid_info);
 		AddConstrain(second_spatial_smooth_constraint,
@@ -156,6 +159,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 	}
 	// temporial_smooth_constraint
 	{
+		cout << "temporial_smooth_constraint" << endl;
 		vector<Constrain> temporial_smooth_constraint =
 			GetTemporialSmoothConstraint(grid_info, 5);
 		AddConstrain(temporial_smooth_constraint,

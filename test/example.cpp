@@ -69,6 +69,8 @@ GetFeaturePairList(const string &corrs_dir_path,
         }
         fs.close();
         all_feature_pair.push_back(feature_pair_one_frame);
+        if (all_feature_pair.size() >= 20)
+            break;
     }
     return all_feature_pair;
 }
@@ -116,7 +118,24 @@ int main(int argc, char **argv)
     const vector<vector<FeaturePair>> feature_pair_list = GetFeaturePairList(corrs_dir_path, 2000, 1000);
     const PolyCamera ploy_camera = GetCamera(polycam_config_path);
 
-    GenerateDeformableSphere(feature_pair_list,
-                             ploy_camera);
+    Tensor<double, 3> output = GenerateDeformableSphere(feature_pair_list,
+                                                        ploy_camera);
+
+    cout << output.dimension(0) << endl;
+    cout << output.dimension(1) << endl;
+    cout << output.dimension(2) << endl;
+
+    for (int frame_index = 0; frame_index < output.dimension(0); frame_index++)
+    {
+        cout << "frame_index = " << frame_index << endl;
+        for (int row_index = 0; row_index < output.dimension(1); row_index++)
+        {
+            for (int col_index = 0; col_index < output.dimension(2) + 1; col_index++)
+            {
+                int real_col_index = col_index % output.dimension(2);
+                cout << output(frame_index, row_index, real_col_index) << endl;
+            }
+        }
+    }
     return 0;
 }
