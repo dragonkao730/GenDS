@@ -21,6 +21,7 @@ struct FeaturePoint
     //  |
     //  v
     //  phi, y
+    
     int camera_index;
     Vector2d theta_phi;
 };
