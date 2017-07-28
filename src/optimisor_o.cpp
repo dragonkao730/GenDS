@@ -2229,7 +2229,7 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 
 	vector<double> col_idx_2(2), val_2(2);
 	w = 1;
-
+	/*
 	for (int i = 0; i < num_vert; i++)
 	{
 		//if (verticecount[i] == 0)
@@ -2324,6 +2324,7 @@ void Optimisor::depthConstraint(vector<vector<double>> &matrix_val, vector<doubl
 			}
 		}
 	}
+	*/
 }
 void Optimisor::depthConstraint2(vector<vector<double>> &matrix_val, vector<double> &b, int &row_count, vector<Vec3d> &depth_points)
 {
