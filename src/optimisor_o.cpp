@@ -1012,11 +1012,9 @@ double Optimisor::linearSolve2()
 			depthConstraint(matrix_val, b, row_count, depth_points[frame_limit * s + i], i);
 
 		// === add constraint of smoothness term ===== //
-		/*
 		cout << "smooth constraint" << endl;
 		for (int i = 0; i < frame_limit; i++)
 			smoothConstraint2(matrix_val, b, row_count, i);
-		*/
 		/// === add constraint of time smoothness term ===== //
 		int max_vert = align_data.mesh_data[0].ori_mesh.size() * align_data.mesh_data[0].ori_mesh[0].size() * frame_limit;
 		cout << "temporal constraint" << endl;
@@ -3490,7 +3488,7 @@ void Optimisor::temperalSmoothConstraint(vector<vector<double>> &matrix_val, vec
 	for (int i = 0; i < max_vert; ++i)
 	{
 
-		int count = -1;
+		double count = -1;
 		for (int t = -tw; t <= tw; t++)
 		{
 			col_idx_t[t + tw] = num_vert * t + i;
@@ -3502,7 +3500,7 @@ void Optimisor::temperalSmoothConstraint(vector<vector<double>> &matrix_val, vec
 			if (col_idx_t[t] == i)
 				val_t[t] = 1;
 			else if ((col_idx_t[t] >= 0) && (col_idx_t[t] < max_vert))
-				val_t[t] = -(1 / count);
+				val_t[t] = -(1.0 / count);
 		}
 
 		for (int s = 0; s < 2 * tw + 1; ++s)
