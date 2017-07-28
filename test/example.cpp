@@ -3,10 +3,15 @@
 #include <iostream>
 #include <fstream>
 #include <dirent.h>
+#include <cmath>
 
 #include <gends.h>
 
+
+
 using namespace std;
+
+#define PI (atan(1) * 4)
 
 vector<string> GetFilePathsInDir(const char *dir_path)
 {
@@ -56,14 +61,15 @@ GetFeaturePairList(const string &corrs_dir_path,
                     else if (s.compare(0, 1, "N") == 0)
                         corr.second.camera_index = atoi(&s[1]);
                     else if (s.compare(0, 1, "x") == 0)
-                        corr.first.theta_phi(0) = atof(&s[1]) / img_w;
+                        corr.first.theta_phi(0) = atof(&s[1]) * 2.0 * PI / img_w;
                     else if (s.compare(0, 1, "y") == 0)
-                        corr.first.theta_phi(1) = atof(&s[1]) / img_h;
+                        corr.first.theta_phi(1) = atof(&s[1]) * PI / img_h;
                     else if (s.compare(0, 1, "X") == 0)
-                        corr.second.theta_phi(0) = atof(&s[1]) / img_w;
+                        corr.second.theta_phi(0) = atof(&s[1]) * 2.0 * PI / img_w;
                     else if (s.compare(0, 1, "Y") == 0)
-                        corr.second.theta_phi(1) = atof(&s[1]) / img_h;
+                        corr.second.theta_phi(1) = atof(&s[1])  * PI / img_h;
                 }
+
                 feature_pair_one_frame.push_back(corr);
             }
         }

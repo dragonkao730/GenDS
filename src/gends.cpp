@@ -138,7 +138,6 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 						 all_constrain);
 		}
 		// first_spatial_smooth_constraint
-		/*
 		{
 			cout << "first_spatial_smooth_constraint" << endl;
 			vector<Constrain> first_spatial_smooth_constraint =
@@ -148,7 +147,6 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 						 first_spatial_smooth_constraint_weight,
 						 all_constrain);
 		}
-		*/
 	}
 	// second_spatial_smooth_constraint
 	/*
