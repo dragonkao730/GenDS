@@ -1056,8 +1056,6 @@ double Optimisor::linearSolve2()
 
 		Eigen::VectorXd X3 = linearSolver.solve(B);
 		cout << "over otimizes" << endl;
-		cout << X3 << endl;
-		assert(false);
 
 		for (int i = 0; i < num_vert * frame_limit; i++)
 		{
