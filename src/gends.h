@@ -7,8 +7,6 @@
 #include <Eigen/Eigen>
 #include <unsupported/Eigen/CXX11/Tensor>
 
-#include "object_function.h"
-
 using namespace std;
 using namespace Eigen;
 

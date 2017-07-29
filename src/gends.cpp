@@ -1,4 +1,5 @@
 #include "gends.h"
+#include "object_function.h"
 
 inline Vector3d
 ThetaPhi2XYZ(const Vector2d &theta_phi)
