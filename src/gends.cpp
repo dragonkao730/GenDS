@@ -46,7 +46,7 @@ GetDepthPoint(const FeaturePair &feature_pair,
     {
         d_m = t * sin(theta_n) / sin(theta_n - theta_m);
         d_n = t * sin(theta_m) / sin(theta_n - theta_m);
-	}
+    }
     // p
     const Vector3d xyz_p = (xyz_m * d_m +
                             ploy_camera.position[feature_pair.first.camera_index] +
