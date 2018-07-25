@@ -33,7 +33,7 @@ GetDepthPoint(const FeaturePair &feature_pair,
     const Vector3d xyz_m = ThetaPhi2XYZ(feature_pair.first.theta_phi);  // norm
     const Vector3d xyz_n = ThetaPhi2XYZ(feature_pair.second.theta_phi); // norm
     const Vector3d &baseline = ploy_camera.baseline(feature_pair.first.camera_index,
-													feature_pair.second.camera_index);
+                                                    feature_pair.second.camera_index);
     // theta
     const double t = baseline.norm();
     const Vector3d e = baseline / t;
@@ -103,7 +103,7 @@ AddConstrain(const vector<Constrain> &x_constrain,
             val.second *= x_weight;
         new_constrain.b *= x_weight;
         constrain_list.push_back(new_constrain);
-	}
+    }
 }
 
 Tensor<double, 3>
@@ -142,7 +142,7 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
 			cout << "first_spatial_smooth_constraint" << endl;
 			vector<Constrain> first_spatial_smooth_constraint =
 				GetFirstSpatialSmoothConstraint(grid_info,
-												depth_constrain_flag);
+                                                depth_constrain_flag);
 			AddConstrain(first_spatial_smooth_constraint,
 						 first_spatial_smooth_constraint_weight,
 						 all_constrain);
@@ -156,16 +156,16 @@ GenerateDeformableSphere(const vector<vector<FeaturePair>> &feature_pair_list,
         AddConstrain(second_spatial_smooth_constraint,
                      second_spatial_smooth_constraint_weight,
                      all_constrain);
-	}
+    }
     // temporial_smooth_constraint
-	{
+    {
         cout << "temporial_smooth_constraint" << endl;
         vector<Constrain> temporial_smooth_constraint =
             GetTemporialSmoothConstraint(grid_info, 5);
         AddConstrain(temporial_smooth_constraint,
                      temporial_smooth_constraint_weight,
                      all_constrain);
-	}
+    }
     // result
     VectorXd result_vector = linearSolve(all_constrain, n_frame * (n_rect_row + 1) * n_rect_col);
     Tensor<double, 3> result_tensor(n_frame, n_rect_row + 1, n_rect_col);
