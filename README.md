@@ -1,4 +1,7 @@
+
 # GenDS
+
+Effective Omnistereo Panorama Video Generation by Deformable Spheres, SIGGRAPH 2017
 
 內容為勝坤的碩論，我們這群可憐的小屁孩要幫他整理 code。
 本來的碩論為將四個 camera 建構兩個有 disparity 的 panorama，
